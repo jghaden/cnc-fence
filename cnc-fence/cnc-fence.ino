@@ -80,7 +80,7 @@ void loop()
 					cValueBufferDenominator[0] = '1';
 				}
 
-				if (nBufferIndex < 10)
+				if (nBufferIndex < 5)
 				{
 					if ((nKeypadBuffer - 48) >= 0 && (nKeypadBuffer - 48 <= 9))
 					{
