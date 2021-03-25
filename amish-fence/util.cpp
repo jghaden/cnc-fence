@@ -88,10 +88,29 @@ byte LetG[] = {
 	0b01110
 };
 
-void centerText(LiquidCrystal_I2C &lcd, const char s[], uint8_t row)
+void alignCenter(LiquidCrystal_I2C &lcd, const char s[], uint8_t row)
 {
 	lcd.setCursor((LCD_COLS / 2) - getLength(s) + (getLength(s) / 2), row);
 	lcd.print(s);
+}
+
+void alignRight(LiquidCrystal_I2C &lcd, const char s[], uint8_t row, uint8_t offset_x = 0)
+{
+	lcd.setCursor(LCD_COLS - getLength(s) - offset_x, row);
+	lcd.print(s);
+}
+
+void clearRow(LiquidCrystal_I2C &lcd, uint8_t row)
+{
+	lcd.setCursor(1, row);
+
+	int i = 0;
+	
+	while (i < LCD_COLS - 2)
+	{
+		lcd.write(' ');
+		i++;
+	}
 }
 
 void customCharSetup(LiquidCrystal_I2C &lcd)

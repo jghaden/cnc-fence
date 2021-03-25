@@ -2,6 +2,16 @@
 #ifndef __KEYPAD_CONFIG_H__
 #define __KEYPAD_CONFIG_H__
 
+#define KEYPAD_PID3844
+#define R1    38
+#define R2    40
+#define R3    42
+#define R4    44
+#define C1    30
+#define C2    34
+#define C3    32
+#define C4    36
+
 #if defined(KEYPAD_PID3844)
 const byte ROWS = 4; // rows
 const byte COLS = 4; // columns
