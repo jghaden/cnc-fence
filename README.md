@@ -76,7 +76,7 @@ Make sure there is no terminal open and connected to the serial port while flash
 
 # Serial
 
-The default **baud rate** is set to **9600** and can be manual changed by the following:
+The default **baud rate** is set to **9600** and can be manually changed by the following:
 
 ```c
 void setup()
