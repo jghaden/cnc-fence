@@ -20,6 +20,7 @@ extern byte CornerTL[], CornerTR[], CornerBL[], CornerBR[], LineHT[], LineHB[], 
 void alignCenter(LiquidCrystal_I2C &lcd, const char s[], uint8_t row);
 void alignRight(LiquidCrystal_I2C &lcd, const char s[], uint8_t row, uint8_t offset_x = 0);
 void clearRow(LiquidCrystal_I2C &lcd, uint8_t row);
+void clearPartialRow(LiquidCrystal_I2C &lcd, uint8_t x1, uint8_t x2, uint8_t row);
 void customCharSetup(LiquidCrystal_I2C &lcd);
 void drawBox(LiquidCrystal_I2C &lcd, uint8_t x, uint8_t y, uint8_t w, uint8_t h);
 

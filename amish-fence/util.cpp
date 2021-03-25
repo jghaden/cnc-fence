@@ -113,6 +113,19 @@ void clearRow(LiquidCrystal_I2C &lcd, uint8_t row)
 	}
 }
 
+void clearPartialRow(LiquidCrystal_I2C &lcd, uint8_t x1, uint8_t x2, uint8_t row)
+{
+	lcd.setCursor(x1, row);
+
+	int i = x1;
+
+	while (i < x2)
+	{
+		lcd.write(' ');
+		i++;
+	}
+}
+
 void customCharSetup(LiquidCrystal_I2C &lcd)
 {
 	lcd.createChar(0, CornerTL);

@@ -1,4 +1,5 @@
 #include "util.h"
+#include <eeprom.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include "Adafruit_Keypad.h"
@@ -8,24 +9,26 @@ LiquidCrystal_I2C lcd = LiquidCrystal_I2C(0x27, LCD_COLS, LCD_ROWS);
 Adafruit_Keypad keypad = Adafruit_Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
 bool bEditMode = false;
+bool bSetDenominator = false;
 bool bSetFenceDepthValue = false;
 bool bSetSpeedValue = false;
 bool bSetTargetValue = false;
 bool bSetThreadsPerInchValue = false;
 
-int nHoldTime = 0;
+int nBufferIndex = 0;
+int nKeypadBuffer = 0;
 int nPageMode = MODE_TARGET;
 int nSerialBuffer = 0;
-int nKeypadBuffer = 0;
 
-int nBufferIndex = 0;
+unsigned long nHoldTime = 0;
 
-float fFenceDepth = 30.0f;
-float fSpeedValue = 0.875f;
+float fFenceDepth;
+float fSpeedValue = 1.25f;
 float fTargetValue = 0.0f;
-float fThreadsPerInchValue = 20.0f;
+float fThreadsPerInchValue;
 
-char cValueBuffer[8] = { 0 };
+char cValueBufferNumerator[8] = { 0 };
+char cValueBufferDenominator[8] = { 0 };
 
 void setup()
 {
@@ -38,12 +41,14 @@ void setup()
 
 	keypad.begin();
 
+	loadEEPROM();
+
 	showMenu();
 }
 
 void loop()
 {
-	keypad.tick();
+	keypad.tick();	
 
 	if (Serial.available() > 0)
 	{
@@ -64,21 +69,51 @@ void loop()
 		keypadEvent e = keypad.read();
 		nKeypadBuffer = e.bit.KEY;
 
-		if (e.bit.EVENT == KEY_JUST_PRESSED)
+		if (e.bit.EVENT == KEY_JUST_PRESSED && (millis() - nHoldTime > 200))
 		{
 			if (bEditMode)
 			{
-				if (nBufferIndex < 6)
+				if (nBufferIndex == 0 && !bSetDenominator)
+				{
+					memset(cValueBufferNumerator, 0, sizeof(cValueBufferNumerator));
+					memset(cValueBufferDenominator, 0, sizeof(cValueBufferDenominator));
+					cValueBufferDenominator[0] = '1';
+				}
+
+				if (nBufferIndex < 10)
 				{
 					if ((nKeypadBuffer - 48) >= 0 && (nKeypadBuffer - 48 <= 9))
 					{
-						lcd.write(nKeypadBuffer);
-						cValueBuffer[nBufferIndex++] = nKeypadBuffer;
+						lcd.write(nKeypadBuffer);						
+
+						if (bSetDenominator)
+						{
+							cValueBufferDenominator[nBufferIndex++] = nKeypadBuffer;
+						}
+						else
+						{
+							cValueBufferNumerator[nBufferIndex++] = nKeypadBuffer;
+						}
 					}
 					else if (nKeypadBuffer == '*')
 					{
 						lcd.write('.');
-						cValueBuffer[nBufferIndex++] = '.';
+
+						if (bSetDenominator)
+						{
+							cValueBufferDenominator[nBufferIndex++] = '.';
+						}
+						else
+						{
+							cValueBufferNumerator[nBufferIndex++] = '.';
+						}
+					}
+					else if (nKeypadBuffer == '#')
+					{
+						lcd.write('/');
+
+						nBufferIndex = 0;
+						bSetDenominator = true;
 					}
 				}
 
@@ -87,7 +122,7 @@ void loop()
 					if (bSetTargetValue)
 					{
 						bSetTargetValue = false;
-						fTargetValue = atof(cValueBuffer);
+						fTargetValue = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
 
 						if (fTargetValue > fFenceDepth)
 						{
@@ -95,19 +130,23 @@ void loop()
 						}
 
 						bEditMode = false;
+						bSetDenominator = false;
 						showMenu();
 					}
 					else if (bSetThreadsPerInchValue)
 					{
 						bSetThreadsPerInchValue = false;
-						fThreadsPerInchValue = atof(cValueBuffer);
+						fThreadsPerInchValue = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
 
 						if (fThreadsPerInchValue > 80)
 						{
 							fThreadsPerInchValue = 80;
 						}
 
+						EEPROM.write(0xC4, fThreadsPerInchValue);
+
 						bEditMode = false;
+						bSetDenominator = false;
 						showMenu();
 					}					
 				}
@@ -116,20 +155,23 @@ void loop()
 					if (bSetFenceDepthValue)
 					{
 						bSetFenceDepthValue = false;
-						fFenceDepth = atof(cValueBuffer);
+						fFenceDepth = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
 
 						if (fFenceDepth > 300.0f)
 						{
 							fFenceDepth = 300.0f;
 						}
 
+						EEPROM.write(0xC0, fFenceDepth);
+
 						bEditMode = false;
+						bSetDenominator = false;
 						showMenu();
 					}
 					else if (bSetSpeedValue)
 					{
 						bSetSpeedValue = false;
-						fSpeedValue = atof(cValueBuffer);
+						fSpeedValue = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
 
 						if (fSpeedValue > 3.0f)
 						{
@@ -137,6 +179,7 @@ void loop()
 						}
 
 						bEditMode = false;
+						bSetDenominator = false;
 						showMenu();
 					}
 				}
@@ -164,7 +207,6 @@ void loop()
 							lcd.setCursor(9, 1);
 
 							nBufferIndex = 0;
-							memset(cValueBuffer, 0, sizeof(cValueBuffer));
 							bEditMode = true;
 							bSetTargetValue = true;
 						}
@@ -176,9 +218,8 @@ void loop()
 							lcd.setCursor(6, 1);
 
 							nBufferIndex = 0;
-							memset(cValueBuffer, 0, sizeof(cValueBuffer));
 							bEditMode = true;
-							bSetThreadsPerInchValue = true;
+							bSetThreadsPerInchValue = true;							
 						}
 
 						break;
@@ -191,7 +232,6 @@ void loop()
 							lcd.setCursor(8, 2);
 
 							nBufferIndex = 0;
-							memset(cValueBuffer, 0, sizeof(cValueBuffer));
 							bEditMode = true;
 							bSetSpeedValue = true;
 						}
@@ -203,7 +243,6 @@ void loop()
 							lcd.setCursor(8, 2);
 
 							nBufferIndex = 0;
-							memset(cValueBuffer, 0, sizeof(cValueBuffer));
 							bEditMode = true;
 							bSetFenceDepthValue = true;
 						}
@@ -230,7 +269,10 @@ void loop()
 								fTargetValue = 0;
 							}
 
-							showMenu();
+							clearPartialRow(lcd, 11, 18, 1);
+							lcd.setCursor(11, 1);
+							lcd.print(fTargetValue, 3);
+							lcd.write('\"');
 						}
 						break;
 					case '#':
@@ -243,18 +285,37 @@ void loop()
 								fTargetValue = fFenceDepth;
 							}
 
-							showMenu();
+							clearPartialRow(lcd, 11, 18, 1);
+							lcd.setCursor(11, 1);
+							lcd.print(fTargetValue, 3);
+							lcd.write('\"');
 						}
 						break;
 				}
 			}
+
+			nHoldTime = millis();
 		}
 		else if (e.bit.EVENT == KEY_JUST_RELEASED)
 		{
 			//Serial.println(" up");
 		}
+	}
+}
 
-		delay(50);
+void loadEEPROM()
+{
+	fFenceDepth = EEPROM.read(0xC0);
+	fThreadsPerInchValue = EEPROM.read(0xC4);
+
+	if (isnan(fFenceDepth))
+	{
+		fFenceDepth = 30.0f;
+	}
+
+	if (isnan(fThreadsPerInchValue))
+	{
+		fThreadsPerInchValue = 20.0f;
 	}
 }
 
@@ -301,6 +362,8 @@ void showMenu()
 		lcd.print(fFenceDepth, 3);
 		lcd.print("\"");
 
+		/*lcd.setCursor(2, 0);
+		lcd.print(" Locked ");*/
 		alignRight(lcd, " Confi\7 mode ", 3, 2);
 	}
 }
