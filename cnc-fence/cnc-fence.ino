@@ -27,8 +27,8 @@ float fSpeedValue = 1.25f;
 float fTargetValue = 0.0f;
 float fThreadsPerInchValue;
 
-char cValueBufferNumerator[8] = { 0 };
-char cValueBufferDenominator[8] = { 0 };
+char cValueBufferNumerator[10] = { 0 };
+char cValueBufferDenominator[10] = { 0 };
 
 void setup()
 {
