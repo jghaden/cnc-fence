@@ -11,7 +11,8 @@
   *
   ******************************************************************************
   */
-#include "Adafruit_Keypad.h"
+#include <Keypad.h>
+#include <Key.h>
 #include <eeprom.h>
 #include <LiquidCrystal_I2C.h>
 #include "util.h"
@@ -30,7 +31,7 @@ void setup()
 	loadEEPROM();
 
 	// Initialize keypad
-	keypad.begin();
+	keypad.setHoldTime(100);
 
 	// Print menu to the LCD
 	showMenu();
@@ -38,7 +39,5 @@ void setup()
 
 void loop()
 {
-	keypad.tick();	
-
 	keypadHandler();
 }

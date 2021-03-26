@@ -111,8 +111,9 @@ bool bSetTargetValue = false;
 bool bSetThreadsPerInchValue = false;
 
 int nBufferIndex = 0;
+int nHoldKey = 0;
 int nKeypadBuffer = 0;
-int nPageMode = MODE_TARGET;
+int nPageMode = PAGE_TARGET;
 int nSerialBuffer = 0;
 
 unsigned long nHoldTime = 0;
@@ -125,7 +126,7 @@ float fThreadsPerInchValue;
 char cValueBufferNumerator[8] = { 0 };
 char cValueBufferDenominator[8] = { 0 };
 
-Adafruit_Keypad keypad = Adafruit_Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
+Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 LiquidCrystal_I2C lcd = LiquidCrystal_I2C(0x27, LCD_COLS, LCD_ROWS);
 
 // Prints a string to the center of the LCD
@@ -224,121 +225,6 @@ void drawWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h)
 	}
 }
 
-// Handle keypresses while in edit mode differently than default mode
-void editMode()
-{
-	if (nBufferIndex == 0 && !bSetDenominator)
-	{
-		memset(cValueBufferNumerator, 0, sizeof(cValueBufferNumerator));
-		memset(cValueBufferDenominator, 0, sizeof(cValueBufferDenominator));
-		cValueBufferDenominator[0] = '1';
-	}
-
-	if (nBufferIndex < 5)
-	{
-		if ((nKeypadBuffer - 48) >= 0 && (nKeypadBuffer - 48 <= 9))
-		{
-			lcd.write(nKeypadBuffer);
-
-			if (bSetDenominator)
-			{
-				cValueBufferDenominator[nBufferIndex++] = nKeypadBuffer;
-			}
-			else
-			{
-				cValueBufferNumerator[nBufferIndex++] = nKeypadBuffer;
-			}
-		}
-		else if (nKeypadBuffer == '*')
-		{
-			lcd.write('.');
-
-			if (bSetDenominator)
-			{
-				cValueBufferDenominator[nBufferIndex++] = '.';
-			}
-			else
-			{
-				cValueBufferNumerator[nBufferIndex++] = '.';
-			}
-		}
-		else if (nKeypadBuffer == 'D')
-		{
-			lcd.write('/');
-
-			nBufferIndex = 0;
-			bSetDenominator = true;
-		}
-	}
-
-	if (nKeypadBuffer == 'A')
-	{
-		if (bSetTargetValue)
-		{
-			bSetTargetValue = false;
-			fTargetValue = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
-
-			if (fTargetValue > fFenceDepth)
-			{
-				fTargetValue = fFenceDepth;
-			}
-
-			bEditMode = false;
-			bSetDenominator = false;
-			showMenu();
-		}
-		else if (bSetThreadsPerInchValue)
-		{
-			bSetThreadsPerInchValue = false;
-			fThreadsPerInchValue = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
-
-			if (fThreadsPerInchValue > 80)
-			{
-				fThreadsPerInchValue = 80;
-			}
-
-			EEPROM.write(0xC4, fThreadsPerInchValue);
-
-			bEditMode = false;
-			bSetDenominator = false;
-			showMenu();
-		}
-	}
-	else if (nKeypadBuffer == 'B')
-	{
-		if (bSetFenceDepthValue)
-		{
-			bSetFenceDepthValue = false;
-			fFenceDepth = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
-
-			if (fFenceDepth > 300.0f)
-			{
-				fFenceDepth = 300.0f;
-			}
-
-			EEPROM.write(0xC0, fFenceDepth);
-
-			bEditMode = false;
-			bSetDenominator = false;
-			showMenu();
-		}
-		else if (bSetSpeedValue)
-		{
-			bSetSpeedValue = false;
-			fSpeedValue = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
-
-			if (fSpeedValue > 3.0f)
-			{
-				fSpeedValue = 3.0f;
-			}
-
-			bEditMode = false;
-			bSetDenominator = false;
-			showMenu();
-		}
-	}
-}
-
 // Handle keypresses when not using special modes
 void defaultMode()
 {
@@ -347,7 +233,7 @@ void defaultMode()
 		case '0': break;
 		case '1': break;
 		case '2': break;
-		case '3': break;
+		case '3': break;	
 		case '4': break;
 		case '5': break;
 		case '6': break;
@@ -355,111 +241,244 @@ void defaultMode()
 		case '8': break;
 		case '9': break;
 		case 'A':
-			if (nPageMode == MODE_TARGET)
-			{
+			if (nPageMode == PAGE_TARGET)
+			{				
 				clearRow(1);
 				lcd.setCursor(1, 1);
 				lcd.print("Tar\7et: ");
-				lcd.setCursor(9, 1);
 
-				nBufferIndex = 0;
-				bEditMode = true;
-				bSetTargetValue = true;
+				bSetTargetValue = true;				
+				editMode(true);
 			}
-			else if (nPageMode == MODE_CONFIG)
+			else if (nPageMode == PAGE_CONFIG)
 			{
 				clearRow(1);
-				lcd.setCursor(1, 1);
+				lcd.setCursor(3, 1);
 				lcd.print("TPI: ");
-				lcd.setCursor(6, 1);
-
-				nBufferIndex = 0;
-				bEditMode = true;
+				
 				bSetThreadsPerInchValue = true;
+				editMode(true);
 			}
 
 			break;
 		case 'B':
-			if (nPageMode == MODE_TARGET || nPageMode == MODE_JOG)
+			if (nPageMode == PAGE_TARGET || nPageMode == PAGE_JOG)
 			{
 				clearRow(2);
-				lcd.setCursor(1, 2);
-				lcd.print("Speed: ");
-				lcd.setCursor(8, 2);
 
-				nBufferIndex = 0;
-				bEditMode = true;
+				if (nPageMode == PAGE_TARGET)
+				{
+					lcd.setCursor(2, 2);
+				}
+				else
+				{
+					lcd.setCursor(1, 2);
+				}
+
+				lcd.print("Speed: ");
+
 				bSetSpeedValue = true;
+				editMode(true);
 			}
-			else if (nPageMode == MODE_CONFIG)
+			else if (nPageMode == PAGE_CONFIG)
 			{
 				clearRow(2);
 				lcd.setCursor(1, 2);
 				lcd.print("Depth: ");
-				lcd.setCursor(8, 2);
 
-				nBufferIndex = 0;
-				bEditMode = true;
 				bSetFenceDepthValue = true;
+				editMode(true);
 			}
 
 			break;
 		case 'C':
+			lcd.print("page");
 			nPageMode++;
 
-			if (nPageMode > MODE_CONFIG)
+			if (nPageMode > PAGE_CONFIG)
 			{
 				nPageMode = 0;
 			}
 
 			showMenu();
 			break;
-		case 'D': break;
-		case '*':
-			if (nPageMode == MODE_JOG)
+		case 'D':
+			if (fTargetValue > 0 && nPageMode != PAGE_CONFIG)
 			{
-				fTargetValue -= (fSpeedValue / 60);
+				fTargetValue = 0;
 
-				if (fTargetValue < 0)
-				{
-					fTargetValue = 0;
-				}
-
-				clearRowPartial(11, 18, 1);
-				lcd.setCursor(11, 1);
-				lcd.print(fTargetValue, 3);
-				lcd.write('\"');
+				showMenu();
 			}
+
 			break;
-		case '#':
-			if (nPageMode == MODE_JOG)
+	}
+}
+
+// Handle keypresses while in edit mode differently than default mode
+void editMode(bool bConfig = false)
+{
+	if (bConfig)
+	{
+		lcd.blink_on();
+		nBufferIndex = 0;
+		bEditMode = true;
+
+		memset(cValueBufferNumerator, 0, sizeof(cValueBufferNumerator));
+		memset(cValueBufferDenominator, 0, sizeof(cValueBufferDenominator));
+		cValueBufferDenominator[0] = '1';
+	}
+	else
+	{
+		if (nBufferIndex < 5)
+		{
+			if ((nKeypadBuffer - 48) >= 0 && (nKeypadBuffer - 48 <= 9))
 			{
-				fTargetValue += (fSpeedValue / 60);
+				lcd.write(nKeypadBuffer);
+
+				if (bSetDenominator)
+				{
+					cValueBufferDenominator[nBufferIndex++] = nKeypadBuffer;
+				}
+				else
+				{
+					cValueBufferNumerator[nBufferIndex++] = nKeypadBuffer;
+				}
+			}
+			else if (nKeypadBuffer == '*')
+			{
+				lcd.write('.');
+
+				if (bSetDenominator)
+				{
+					cValueBufferDenominator[nBufferIndex++] = '.';
+				}
+				else
+				{
+					cValueBufferNumerator[nBufferIndex++] = '.';
+				}
+			}
+			else if (nKeypadBuffer == 'D')
+			{
+				lcd.write('/');
+
+				nBufferIndex = 0;
+				bSetDenominator = true;
+			}
+		}
+
+		if (nKeypadBuffer == 'A')
+		{
+			if (bSetTargetValue)
+			{
+				bSetTargetValue = false;
+				fTargetValue = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
 
 				if (fTargetValue > fFenceDepth)
 				{
 					fTargetValue = fFenceDepth;
 				}
 
-				clearRowPartial(11, 18, 1);
-				lcd.setCursor(11, 1);
-				lcd.print(fTargetValue, 3);
-				lcd.write('\"');
+				bEditMode = false;
+				bSetDenominator = false;
+				showMenu();
 			}
-			break;
+			else if (bSetThreadsPerInchValue)
+			{
+				bSetThreadsPerInchValue = false;
+				fThreadsPerInchValue = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
+
+				if (fThreadsPerInchValue > 80)
+				{
+					fThreadsPerInchValue = 80;
+				}
+
+				EEPROM.write(0xC4, fThreadsPerInchValue);
+
+				bEditMode = false;
+				bSetDenominator = false;
+				showMenu();
+			}
+		}
+		else if (nKeypadBuffer == 'B')
+		{
+			if (bSetFenceDepthValue)
+			{
+				bSetFenceDepthValue = false;
+				fFenceDepth = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
+
+				if (fFenceDepth > 300.0f)
+				{
+					fFenceDepth = 300.0f;
+				}
+
+				EEPROM.write(0xC0, fFenceDepth);
+
+				bEditMode = false;
+				bSetDenominator = false;
+				showMenu();
+			}
+			else if (bSetSpeedValue)
+			{
+				bSetSpeedValue = false;
+				fSpeedValue = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
+
+				if (fSpeedValue > 5.0f)
+				{
+					fSpeedValue = 5.0f;
+				}
+
+				bEditMode = false;
+				bSetDenominator = false;
+				showMenu();
+			}
+		}
 	}
 }
 
-// Handle keypress events from keypad and pass to keybinding functions
+void jogMode(uint8_t dir)
+{
+	if (dir == JOG_MINUS)
+	{
+		fTargetValue -= (fSpeedValue / 8);
+
+		if (fTargetValue < 0)
+		{
+			fTargetValue = 0;
+		}
+
+		clearRowPartial(11, 18, 1);
+		lcd.setCursor(11, 1);
+		lcd.print(fTargetValue, 3);
+		lcd.write('\"');
+	}
+	else if (dir == JOG_PLUS)
+	{
+		fTargetValue += (fSpeedValue / 8);
+
+		if (fTargetValue > fFenceDepth)
+		{
+			fTargetValue = fFenceDepth;
+		}
+
+		clearRowPartial(11, 18, 1);
+		lcd.setCursor(11, 1);
+		lcd.print(fTargetValue, 3);
+		lcd.write('\"');
+	}
+}
+
 void keypadHandler()
 {
-	while (keypad.available())
-	{
-		keypadEvent e = keypad.read();
-		nKeypadBuffer = e.bit.KEY;
+	nKeypadBuffer = keypad.getKey();
 
-		if (e.bit.EVENT == KEY_JUST_PRESSED && (millis() - nHoldTime > 200))
-		{
+	if (nKeypadBuffer)
+	{
+		nHoldKey = nKeypadBuffer;
+	}
+	
+	switch (keypad.getState())
+	{
+		case PRESSED:
 			if (bEditMode)
 			{
 				editMode();
@@ -469,8 +488,27 @@ void keypadHandler()
 				defaultMode();
 			}
 
-			nHoldTime = millis();
-		}
+			break;
+		case HOLD:
+			if ((millis() - nHoldTime) > 100)
+			{
+				if (nPageMode == PAGE_JOG)
+				{
+					switch (nHoldKey)
+					{
+						case '*':
+							jogMode(JOG_MINUS);
+							break;
+						case '#':
+							jogMode(JOG_PLUS);
+							break;
+					}
+
+					nHoldTime = millis();
+				}
+			}			
+
+			break;
 	}
 }
 
@@ -494,21 +532,22 @@ void loadEEPROM()
 // Print menu to LCD based on current mode
 void showMenu()
 {
+	lcd.blink_off();
 	lcd.clear();
 
-	if (nPageMode == MODE_TARGET)
+	if (nPageMode == PAGE_TARGET)
 	{
 		lcd.setCursor(1, 1);
 		lcd.print("Tar\7et: ");
 		lcd.print(fTargetValue, 3);
 		lcd.print("\"");
 
-		lcd.setCursor(1, 2);
-		lcd.print(" Speed: ");
+		lcd.setCursor(2, 2);
+		lcd.print("Speed: ");
 		lcd.print(fSpeedValue, 3);
 		lcd.print(" in/s");
 	}
-	else if (nPageMode == MODE_JOG)
+	else if (nPageMode == PAGE_JOG)
 	{
 		drawWindow(0, 0, LCD_COLS, LCD_ROWS);
 		lcd.setCursor(1, 1);
@@ -521,13 +560,13 @@ void showMenu()
 		lcd.print(fSpeedValue, 3);
 		lcd.print(" in/s");
 
-		alignRight(" Jo\7 mode ", 3, 2);
+		alignRight(" Jo\7 ", 3, 2);
 	}
-	else if (nPageMode == MODE_CONFIG)
+	else if (nPageMode == PAGE_CONFIG)
 	{
 		drawWindow(0, 0, LCD_COLS, LCD_ROWS);
-		lcd.setCursor(1, 1);
-		lcd.print("  TPI: ");
+		lcd.setCursor(3, 1);
+		lcd.print("TPI: ");
 		lcd.print(fThreadsPerInchValue, 3);
 
 		lcd.setCursor(1, 2);
@@ -537,7 +576,7 @@ void showMenu()
 
 		/*lcd.setCursor(2, 0);
 		lcd.print(" Locked ");*/
-		alignRight(" Confi\7 mode ", 3, 2);
+		alignRight(" Confi\7 ", 3, 2);
 	}
 }
 

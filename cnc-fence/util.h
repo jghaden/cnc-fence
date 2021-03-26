@@ -19,7 +19,8 @@
 #else
 	#include "WProgram.h"
 #endif
-#include <Adafruit_Keypad.h>
+#include <Keypad.h>
+#include <Key.h>
 #include <EEPROM.h>
 #include <LiquidCrystal_I2C.h>
 
@@ -28,17 +29,20 @@
 #define LCD_ROWS 4
 
 // Used by showMenu() to know what page to print to the LCD
-#define MODE_TARGET 0
-#define MODE_JOG	1
-#define MODE_CONFIG 2
+#define PAGE_TARGET 0
+#define PAGE_JOG	1
+#define PAGE_CONFIG 2
+
+#define JOG_MINUS 0
+#define JOG_PLUS  1
 
 extern byte CornerTL[], CornerTR[], CornerBL[], CornerBR[], LineHT[], LineHB[], LineV[], LetG[];
 extern bool bEditMode, bSetDenominator, bSetFenceDepthValue, bSetSpeedValue, bSetTargetValue, bSetThreadsPerInchValue;
-extern int nBufferIndex, nKeypadBuffer, nPageMode, nSerialBuffer;
+extern int nBufferIndex, nHoldKey, nKeypadBuffer, nPageMode, nSerialBuffer;
 extern unsigned long nHoldTime;
 extern float fFenceDepth, fSpeedValue ,fTargetValue, fThreadsPerInchValue;
 extern char cValueBufferNumerator[8], cValueBufferDenominator[8];
-extern Adafruit_Keypad keypad;
+extern Keypad keypad;
 extern LiquidCrystal_I2C lcd;
 
 void alignCenter(const char s[], uint8_t row);
@@ -48,7 +52,8 @@ void clearRowPartial(uint8_t x1, uint8_t x2, uint8_t row);
 void customCharacterSetup();
 void drawWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h);
 void defaultMode();
-void editMode();
+void editMode(bool bConfig = false);
+void jogMode(uint8_t dir);
 void keypadHandler();
 void loadEEPROM();
 void showMenu();

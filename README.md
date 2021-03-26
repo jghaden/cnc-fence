@@ -32,18 +32,24 @@ This firmware is flashed to an **ATmega2560 MCU** to drive the CNC fence using *
                         ┌──────────────────┐     ┌──────────────────┐
  Target: 0.000"         │Position: 0.000"  │     │  TPI: 20.000     │
  Speed: 1.250 in/s      │Speed: 1.250 in/s │     │Depth: 50.000"    │
-                        └─────── Jog mode ─┘     └──── Config mode ─┘
+                        └──────────── Jog ─┘     └───────── Config ─┘
 ```
 
 # Manual
 
-**Default mode**
+**Default**
 | Key | Function |
 |--|--|
 | A | Edit top value |
 | B | Edit bottom value |
-| C | Cylce through pages |
+| C | Page cycle |
 | D | Home |
+#
+**Jog page**
+| Key | Function |
+|--|--|
+| * | Jog ( -Y ) |
+| # | Jog ( +Y ) |
 #
 **Edit mode**
 | Key | Function |
@@ -52,12 +58,6 @@ This firmware is flashed to an **ATmega2560 MCU** to drive the CNC fence using *
 | B | Set bottom value |
 | D | Fraction bar ( / ) |
 | * | Decimal point ( . ) |
-#
-**Jog mode**
-| Key | Function |
-|--|--|
-| * | Jog ( -Y ) |
-| # | Jog ( +Y ) |
 #
 
 # Requirements
