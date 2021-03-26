@@ -30,8 +30,8 @@ This firmware is flashed to an **ATmega2560 MCU** to drive the CNC fence using *
                               Page 1-3
 
                         ┌──────────────────┐     ┌──────────────────┐
- Target: 0.000"         │Position: 0.000"  │     │  TPI: 20.000     │
- Speed: 1.250 in/s      │Speed: 1.250 in/s │     │Depth: 50.000"    │
+ Target: 0.000"         │Position: 0.000"  │     │  TPI: 24.000     │
+ Speed: 1.250 in/s      │Speed: 1.250 in/s │     │Depth: 120.000"   │
                         └──────────── Jog ─┘     └───────── Config ─┘
 ```
 
@@ -66,7 +66,7 @@ This project is managed under Visual Studio 2017 and not the [**Arduino IDE**](h
 
 Install [**Visual Micro**](https://www.visualmicro.com/) to properly flash to an Arduino board. This can be done through the  **Extensions and Updates** menu in Visual Studio.
 
-The project uses the **LiquidCrystal I2C** and **Adafruit Keypad** library, both which can be installed through **Visual Micro**
+The project uses the **LiquidCrystal I2C** *(Frank de Brabander)* and the **Keypad** *(Mark Stanley, Alexander Brevig)* library, both which can be installed through **Visual Micro**
 
 # Flashing
 
