@@ -19,15 +19,15 @@ This firmware is flashed to an **ATmega2560 MCU** to drive the CNC fence using *
 # Features
 
 - Page cycle
-- Set target depth for fence (inches)
-- Set speed (in/s)
-- Jogging (-Y/+Y)
+- Set target depth for fence ( inches )
+- Set speed ( in/s )
+- Jogging ( -Y/+Y )
 - Fractional input
-- Configurable Threads Per Inch (TPI) and fence depth value
+- Configurable Threads Per Inch ( TPI ) and fence depth value
 - Load custom config values out of reset
 
 ```
-                             Page 1-3
+                              Page 1-3
 
                         ┌──────────────────┐     ┌──────────────────┐
  Target: 0.000"         │Position: 0.000"  │     │  TPI: 20.000     │
@@ -50,14 +50,14 @@ This firmware is flashed to an **ATmega2560 MCU** to drive the CNC fence using *
 |--|--|
 | A | Set top value |
 | B | Set bottom value |
+| D | Fraction bar ( / ) |
 | * | Decimal point ( . ) |
-| # | Fraction bar ( / ) |
 #
 **Jog mode**
 | Key | Function |
 |--|--|
-| * | Jog (-Y) |
-| # | Jog (+Y) |
+| * | Jog ( -Y ) |
+| # | Jog ( +Y ) |
 #
 
 # Requirements
