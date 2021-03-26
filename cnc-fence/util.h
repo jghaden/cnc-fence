@@ -1,3 +1,16 @@
+/**
+  ******************************************************************************
+  * @file    util.h
+  * @author  Joshua Haden
+  * @version V0.1.0
+  * @date    26-MAR-2021
+  * @brief   Header for util.cpp
+  ******************************************************************************
+  * @attention
+  *
+  *
+  ******************************************************************************
+  */
 #ifndef _UTIL_h
 #define _UTIL_h
 
@@ -10,9 +23,11 @@
 #include <EEPROM.h>
 #include <LiquidCrystal_I2C.h>
 
+// Define width and height of LCD with columns and rows respectively
 #define LCD_COLS 20
 #define LCD_ROWS 4
 
+// Used by showMenu() to know what page to print to the LCD
 #define MODE_TARGET 0
 #define MODE_JOG	1
 #define MODE_CONFIG 2
@@ -29,9 +44,9 @@ extern LiquidCrystal_I2C lcd;
 void alignCenter(const char s[], uint8_t row);
 void alignRight(const char s[], uint8_t row, uint8_t offset_x = 0);
 void clearRow(uint8_t row);
-void clearPartialRow(uint8_t x1, uint8_t x2, uint8_t row);
-void customCharSetup();
-void drawBox(uint8_t x, uint8_t y, uint8_t w, uint8_t h);
+void clearRowPartial(uint8_t x1, uint8_t x2, uint8_t row);
+void customCharacterSetup();
+void drawWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h);
 void defaultMode();
 void editMode();
 void keypadHandler();

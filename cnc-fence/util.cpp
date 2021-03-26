@@ -1,3 +1,16 @@
+/**
+  ******************************************************************************
+  * @file    util.cpp
+  * @author  Joshua Haden
+  * @version V0.1.0
+  * @date    26-MAR-2021
+  * @brief   Manages functionality regarding the LCD and keypad
+  ******************************************************************************
+  * @attention
+  *
+  *
+  ******************************************************************************
+  */
 #include "util.h"
 #include "keypad_config.h"
 
@@ -78,6 +91,7 @@ byte LineV[] = {
 	0b00100
 };
 
+// Custom lower case 'g' character, 'g' in the default LCD character set looks bad
 byte LetG[] = {
 	0b00000,
 	0b00000,
@@ -114,18 +128,21 @@ char cValueBufferDenominator[8] = { 0 };
 Adafruit_Keypad keypad = Adafruit_Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 LiquidCrystal_I2C lcd = LiquidCrystal_I2C(0x27, LCD_COLS, LCD_ROWS);
 
+// Prints a string to the center of the LCD
 void alignCenter(const char s[], uint8_t row)
 {
 	lcd.setCursor((LCD_COLS / 2) - getLength(s) + (getLength(s) / 2), row);
 	lcd.print(s);
 }
 
+// Prints a string from the right side of the LCD
 void alignRight(const char s[], uint8_t row, uint8_t offset_x = 0)
 {
 	lcd.setCursor(LCD_COLS - getLength(s) - offset_x, row);
 	lcd.print(s);
 }
 
+// Clears row on the LCD without resetting the whole screen
 void clearRow(uint8_t row)
 {
 	lcd.setCursor(1, row);
@@ -139,7 +156,8 @@ void clearRow(uint8_t row)
 	}
 }
 
-void clearPartialRow(uint8_t x1, uint8_t x2, uint8_t row)
+// Clears a portion of a row on the LCD without updating the rest of the row
+void clearRowPartial(uint8_t x1, uint8_t x2, uint8_t row)
 {
 	lcd.setCursor(x1, row);
 
@@ -152,7 +170,8 @@ void clearPartialRow(uint8_t x1, uint8_t x2, uint8_t row)
 	}
 }
 
-void customCharSetup()
+// Encodes custom characters to the first 8 characters of the LCD character set
+void customCharacterSetup()
 {
 	lcd.createChar(0, CornerTL);
 	lcd.createChar(1, CornerTR);
@@ -164,7 +183,8 @@ void customCharSetup()
 	lcd.createChar(7, LetG);
 }
 
-void drawBox(uint8_t x, uint8_t y, uint8_t w, uint8_t h)
+// Print a window at a specific point on the LCD with a width and height
+void drawWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h)
 {
 	for (uint8_t _y = y; _y < h + y; _y++)
 	{
@@ -204,6 +224,7 @@ void drawBox(uint8_t x, uint8_t y, uint8_t w, uint8_t h)
 	}
 }
 
+// Handle keypresses while in edit mode differently than default mode
 void editMode()
 {
 	if (nBufferIndex == 0 && !bSetDenominator)
@@ -318,6 +339,7 @@ void editMode()
 	}
 }
 
+// Handle keypresses when not using special modes
 void defaultMode()
 {
 	switch (nKeypadBuffer)
@@ -403,7 +425,7 @@ void defaultMode()
 					fTargetValue = 0;
 				}
 
-				clearPartialRow(11, 18, 1);
+				clearRowPartial(11, 18, 1);
 				lcd.setCursor(11, 1);
 				lcd.print(fTargetValue, 3);
 				lcd.write('\"');
@@ -419,7 +441,7 @@ void defaultMode()
 					fTargetValue = fFenceDepth;
 				}
 
-				clearPartialRow(11, 18, 1);
+				clearRowPartial(11, 18, 1);
 				lcd.setCursor(11, 1);
 				lcd.print(fTargetValue, 3);
 				lcd.write('\"');
@@ -428,6 +450,7 @@ void defaultMode()
 	}
 }
 
+// Handle keypress events from keypad and pass to keybinding functions
 void keypadHandler()
 {
 	while (keypad.available())
@@ -448,13 +471,10 @@ void keypadHandler()
 
 			nHoldTime = millis();
 		}
-		else if (e.bit.EVENT == KEY_JUST_RELEASED)
-		{
-			//Serial.println(" up");
-		}
 	}
 }
 
+// Load config data from EEPROM (4 KB) to set fence depth and TPI out of reset
 void loadEEPROM()
 {
 	fFenceDepth = EEPROM.read(0xC0);
@@ -471,6 +491,7 @@ void loadEEPROM()
 	}
 }
 
+// Print menu to LCD based on current mode
 void showMenu()
 {
 	lcd.clear();
@@ -489,7 +510,7 @@ void showMenu()
 	}
 	else if (nPageMode == MODE_JOG)
 	{
-		drawBox(0, 0, LCD_COLS, LCD_ROWS);
+		drawWindow(0, 0, LCD_COLS, LCD_ROWS);
 		lcd.setCursor(1, 1);
 		lcd.print("Position: ");
 		lcd.print(fTargetValue, 3);
@@ -504,7 +525,7 @@ void showMenu()
 	}
 	else if (nPageMode == MODE_CONFIG)
 	{
-		drawBox(0, 0, LCD_COLS, LCD_ROWS);
+		drawWindow(0, 0, LCD_COLS, LCD_ROWS);
 		lcd.setCursor(1, 1);
 		lcd.print("  TPI: ");
 		lcd.print(fThreadsPerInchValue, 3);
@@ -520,6 +541,7 @@ void showMenu()
 	}
 }
 
+// Return length of string to use for text alignment functions
 uint8_t getLength(const char s[])
 {
 	size_t i = 0;

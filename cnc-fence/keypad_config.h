@@ -1,8 +1,19 @@
-// This file contains predefined setup for various Adafruit Matrix Keypads.
+/**
+  ******************************************************************************
+  * @file    keypad_config.h
+  * @author  Joshua Haden
+  * @version V0.1.0
+  * @date    26-MAR-2021
+  * @brief   Configure keypad pins and output data
+  ******************************************************************************
+  * @attention
+  *
+  *
+  ******************************************************************************
+  */
 #ifndef __KEYPAD_CONFIG_H__
 #define __KEYPAD_CONFIG_H__
 
-#define KEYPAD_PID3844
 #define C1    22
 #define C2    24
 #define C3    26
@@ -12,7 +23,6 @@
 #define R3    34
 #define R4    36
 
-#if defined(KEYPAD_PID3844)
 const byte ROWS = 4; // rows
 const byte COLS = 4; // columns
 
@@ -24,6 +34,5 @@ char keys[ROWS][COLS] = { {'1', '2', '3', 'A'},
 
 byte colPins[COLS] = { C1, C2, C3, C4 }; // connect to the column pinouts of the keypad
 byte rowPins[ROWS] = { R1, R2, R3, R4 }; // connect to the row pinouts of the keypad
-#endif
 
 #endif
