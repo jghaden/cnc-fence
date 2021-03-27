@@ -20,6 +20,7 @@
 
 void setup()
 {
+	Serial.begin(9600);
 	// Configure LCD with I2C address, cols, and rows
 	lcd.init();
 	lcd.backlight();

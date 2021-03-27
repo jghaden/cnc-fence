@@ -248,7 +248,7 @@ void defaultMode()
 				lcd.print("Tar\7et: ");
 
 				bSetTargetValue = true;				
-				editMode(true);
+				editMode(EDIT_MODE_PRE);
 			}
 			else if (nPageMode == PAGE_CONFIG)
 			{
@@ -257,7 +257,7 @@ void defaultMode()
 				lcd.print("TPI: ");
 				
 				bSetThreadsPerInchValue = true;
-				editMode(true);
+				editMode(EDIT_MODE_PRE);
 			}
 
 			break;
@@ -278,7 +278,7 @@ void defaultMode()
 				lcd.print("Speed: ");
 
 				bSetSpeedValue = true;
-				editMode(true);
+				editMode(EDIT_MODE_PRE);
 			}
 			else if (nPageMode == PAGE_CONFIG)
 			{
@@ -287,7 +287,7 @@ void defaultMode()
 				lcd.print("Depth: ");
 
 				bSetFenceDepthValue = true;
-				editMode(true);
+				editMode(EDIT_MODE_PRE);
 			}
 
 			break;
@@ -315,123 +315,121 @@ void defaultMode()
 }
 
 // Handle keypresses while in edit mode differently than default mode
-void editMode(bool bConfig = false)
+void editMode(uint8_t nEditMode = EDIT_MODE_CUR)
 {
-	if (bConfig)
+	switch (nEditMode)
 	{
-		lcd.blink_on();
-		nBufferIndex = 0;
-		bEditMode = true;
+		case EDIT_MODE_PRE:
+			lcd.blink_on();
+			nBufferIndex = 0;
+			bEditMode = true;
 
-		memset(cValueBufferNumerator, 0, sizeof(cValueBufferNumerator));
-		memset(cValueBufferDenominator, 0, sizeof(cValueBufferDenominator));
-		cValueBufferDenominator[0] = '1';
-	}
-	else
-	{
-		if (nBufferIndex < 5)
-		{
-			if ((nKeypadBuffer - 48) >= 0 && (nKeypadBuffer - 48 <= 9))
+			memset(cValueBufferNumerator, 0, sizeof(cValueBufferNumerator));
+			memset(cValueBufferDenominator, 0, sizeof(cValueBufferDenominator));
+			cValueBufferDenominator[0] = '1';
+			break;
+		case EDIT_MODE_CUR:
+			if (nBufferIndex < 5)
 			{
-				lcd.write(nKeypadBuffer);
+				if ((nKeypadBuffer - 48) >= 0 && (nKeypadBuffer - 48 <= 9))
+				{
+					lcd.write(nKeypadBuffer);
 
-				if (bSetDenominator)
-				{
-					cValueBufferDenominator[nBufferIndex++] = nKeypadBuffer;
+					if (bSetDenominator)
+					{
+						cValueBufferDenominator[nBufferIndex++] = nKeypadBuffer;
+					}
+					else
+					{
+						cValueBufferNumerator[nBufferIndex++] = nKeypadBuffer;
+					}
 				}
-				else
+				else if (nKeypadBuffer == '*')
 				{
-					cValueBufferNumerator[nBufferIndex++] = nKeypadBuffer;
+					lcd.write('.');
+
+					if (bSetDenominator)
+					{
+						cValueBufferDenominator[nBufferIndex++] = '.';
+					}
+					else
+					{
+						cValueBufferNumerator[nBufferIndex++] = '.';
+					}
+				}
+				else if (nKeypadBuffer == 'D')
+				{
+					lcd.write('/');
+
+					nBufferIndex = 0;
+					bSetDenominator = true;
 				}
 			}
-			else if (nKeypadBuffer == '*')
-			{
-				lcd.write('.');
 
-				if (bSetDenominator)
+			if (nKeypadBuffer == 'A')
+			{
+				if (bSetTargetValue)
 				{
-					cValueBufferDenominator[nBufferIndex++] = '.';
+					bSetTargetValue = false;
+					fTargetValue = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
+
+					if (fTargetValue > fFenceDepth)
+					{
+						fTargetValue = fFenceDepth;
+					}
+
+					editMode(EDIT_MODE_POST);
 				}
-				else
+				else if (bSetThreadsPerInchValue)
 				{
-					cValueBufferNumerator[nBufferIndex++] = '.';
+					bSetThreadsPerInchValue = false;
+					fThreadsPerInchValue = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
+
+					if (fThreadsPerInchValue > 80)
+					{
+						fThreadsPerInchValue = 80;
+					}
+
+					EEPROM.write(0xC4, fThreadsPerInchValue);
+
+					editMode(EDIT_MODE_POST);
 				}
 			}
-			else if (nKeypadBuffer == 'D')
+			else if (nKeypadBuffer == 'B')
 			{
-				lcd.write('/');
-
-				nBufferIndex = 0;
-				bSetDenominator = true;
-			}
-		}
-
-		if (nKeypadBuffer == 'A')
-		{
-			if (bSetTargetValue)
-			{
-				bSetTargetValue = false;
-				fTargetValue = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
-
-				if (fTargetValue > fFenceDepth)
+				if (bSetFenceDepthValue)
 				{
-					fTargetValue = fFenceDepth;
+					bSetFenceDepthValue = false;
+					fFenceDepth = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
+
+					if (fFenceDepth > 500.0f)
+					{
+						fFenceDepth = 500.0f;
+					}
+
+					EEPROM.write(0xC0, fFenceDepth);
+
+					editMode(EDIT_MODE_POST);
 				}
-
-				bEditMode = false;
-				bSetDenominator = false;
-				showMenu();
-			}
-			else if (bSetThreadsPerInchValue)
-			{
-				bSetThreadsPerInchValue = false;
-				fThreadsPerInchValue = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
-
-				if (fThreadsPerInchValue > 80)
+				else if (bSetSpeedValue)
 				{
-					fThreadsPerInchValue = 80;
+					bSetSpeedValue = false;
+					fSpeedValue = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
+
+					if (fSpeedValue > 5.0f)
+					{
+						fSpeedValue = 5.0f;
+					}
+
+					editMode(EDIT_MODE_POST);
 				}
-
-				EEPROM.write(0xC4, fThreadsPerInchValue);
-
-				bEditMode = false;
-				bSetDenominator = false;
-				showMenu();
 			}
-		}
-		else if (nKeypadBuffer == 'B')
-		{
-			if (bSetFenceDepthValue)
-			{
-				bSetFenceDepthValue = false;
-				fFenceDepth = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
-
-				if (fFenceDepth > 300.0f)
-				{
-					fFenceDepth = 300.0f;
-				}
-
-				EEPROM.write(0xC0, fFenceDepth);
-
-				bEditMode = false;
-				bSetDenominator = false;
-				showMenu();
-			}
-			else if (bSetSpeedValue)
-			{
-				bSetSpeedValue = false;
-				fSpeedValue = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
-
-				if (fSpeedValue > 5.0f)
-				{
-					fSpeedValue = 5.0f;
-				}
-
-				bEditMode = false;
-				bSetDenominator = false;
-				showMenu();
-			}
-		}
+			break;
+		case EDIT_MODE_POST:
+			bEditMode = false;
+			bSetDenominator = false;
+			showMenu();
+			break;
 	}
 }
 
@@ -525,7 +523,7 @@ void loadEEPROM()
 
 	if (isnan(fThreadsPerInchValue))
 	{
-		fThreadsPerInchValue = 20.0f;
+		fThreadsPerInchValue = 24.0f;
 	}
 }
 
