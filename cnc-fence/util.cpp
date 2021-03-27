@@ -119,7 +119,7 @@ int nSerialBuffer = 0;
 unsigned long nHoldTime = 0;
 
 float fFenceDepth;
-float fSpeedValue = 1.25f;
+float fSpeedValue;
 float fTargetValue = 0.0f;
 float fThreadsPerInchValue;
 
@@ -297,7 +297,7 @@ void defaultMode()
 			lcd.print("page");
 			nPageMode++;
 
-			if (nPageMode > PAGE_SYSTEM)
+			if (nPageMode > PAGE_CONFIG)
 			{
 				nPageMode = 0;
 			}
@@ -310,11 +310,6 @@ void defaultMode()
 				fTargetValue = 0;
 
 				showMenu();
-			}
-
-			else if (nPageMode == PAGE_CONFIG)
-			{
-				reset();
 			}
 
 			break;
@@ -397,7 +392,7 @@ void editMode(uint8_t nEditMode = EDIT_MODE_CUR)
 						fThreadsPerInchValue = 80;
 					}
 
-					EEPROM.write(0xC4, fThreadsPerInchValue);
+					EEPROM.write(EEPROM_TPI, fThreadsPerInchValue);
 
 					editMode(EDIT_MODE_POST);
 				}
@@ -414,7 +409,7 @@ void editMode(uint8_t nEditMode = EDIT_MODE_CUR)
 						fFenceDepth = 500.0f;
 					}
 
-					EEPROM.write(0xC0, fFenceDepth);
+					EEPROM.write(EEPROM_FENCE_DEPTH, fFenceDepth);
 
 					editMode(EDIT_MODE_POST);
 				}
@@ -427,6 +422,8 @@ void editMode(uint8_t nEditMode = EDIT_MODE_CUR)
 					{
 						fSpeedValue = 5.0f;
 					}
+					EEPROM.write(EEPROM_SPEED, fSpeedValue);
+
 
 					editMode(EDIT_MODE_POST);
 				}
@@ -533,12 +530,18 @@ void keypadHandler()
 // Load config data from EEPROM (4 KB) to set fence depth and TPI out of reset
 void loadEEPROM()
 {
-	fFenceDepth = EEPROM.read(0xC0);
-	fThreadsPerInchValue = EEPROM.read(0xC4);
+	fFenceDepth = EEPROM.read(EEPROM_FENCE_DEPTH);
+	fSpeedValue = EEPROM.read(EEPROM_SPEED);
+	fThreadsPerInchValue = EEPROM.read(EEPROM_TPI);
 
 	if (isnan(fFenceDepth))
 	{
 		fFenceDepth = 30.0f;
+	}
+
+	if (isnan(fSpeedValue))
+	{
+		fSpeedValue = 1.0f;
 	}
 
 	if (isnan(fThreadsPerInchValue))

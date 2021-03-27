@@ -34,13 +34,16 @@
 #define PAGE_CONFIG 2
 #define PAGE_SYSTEM 3
 
+#define EEPROM_FENCE_DEPTH 0xC0
+#define EEPROM_SPEED	   0xC1
+#define EEPROM_TPI		   0xC4
+
 #define EDIT_MODE_PRE  0
 #define EDIT_MODE_CUR  1
 #define EDIT_MODE_POST 2
 
 #define JOG_MINUS 0
 #define JOG_PLUS  1
-
 
 extern byte CornerTL[], CornerTR[], CornerBL[], CornerBR[], LineHT[], LineHB[], LineV[], LetG[];
 extern bool bEditMode, bSetDenominator, bSetFenceDepthValue, bSetSpeedValue, bSetTargetValue, bSetThreadsPerInchValue;
