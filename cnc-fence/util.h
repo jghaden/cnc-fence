@@ -32,6 +32,7 @@
 #define PAGE_TARGET 0
 #define PAGE_JOG	1
 #define PAGE_CONFIG 2
+#define PAGE_SYSTEM 3
 
 #define EDIT_MODE_PRE  0
 #define EDIT_MODE_CUR  1
@@ -66,4 +67,3 @@ void showMenu();
 uint8_t getLength(const char s[]);
 
 #endif
-

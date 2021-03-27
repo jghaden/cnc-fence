@@ -129,6 +129,8 @@ char cValueBufferDenominator[8] = { 0 };
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 LiquidCrystal_I2C lcd = LiquidCrystal_I2C(0x27, LCD_COLS, LCD_ROWS);
 
+void(*reset)(void) = 0;
+
 // Prints a string to the center of the LCD
 void alignCenter(const char s[], uint8_t row)
 {
@@ -295,7 +297,7 @@ void defaultMode()
 			lcd.print("page");
 			nPageMode++;
 
-			if (nPageMode > PAGE_CONFIG)
+			if (nPageMode > PAGE_SYSTEM)
 			{
 				nPageMode = 0;
 			}
@@ -303,11 +305,16 @@ void defaultMode()
 			showMenu();
 			break;
 		case 'D':
-			if (fTargetValue > 0 && nPageMode != PAGE_CONFIG)
+			if (fTargetValue > 0 && (nPageMode != PAGE_CONFIG || nPageMode != PAGE_SYSTEM))
 			{
 				fTargetValue = 0;
 
 				showMenu();
+			}
+
+			else if (nPageMode == PAGE_CONFIG)
+			{
+				reset();
 			}
 
 			break;
@@ -488,6 +495,19 @@ void keypadHandler()
 
 			break;
 		case HOLD:
+			if ((millis() - nHoldTime) > 5000)
+			{
+				if (nPageMode != PAGE_JOG && nHoldKey == '*')
+				{
+					lcd.clear();
+					alignCenter("Resetting", 1);
+					delay(1000);
+					reset();
+				}
+
+				nHoldTime = millis();
+			}
+
 			if ((millis() - nHoldTime) > 100)
 			{
 				if (nPageMode == PAGE_JOG)
@@ -533,48 +553,49 @@ void showMenu()
 	lcd.blink_off();
 	lcd.clear();
 
-	if (nPageMode == PAGE_TARGET)
-	{
-		lcd.setCursor(1, 1);
-		lcd.print("Tar\7et: ");
-		lcd.print(fTargetValue, 3);
-		lcd.print("\"");
-
-		lcd.setCursor(2, 2);
-		lcd.print("Speed: ");
-		lcd.print(fSpeedValue, 3);
-		lcd.print(" in/s");
-	}
-	else if (nPageMode == PAGE_JOG)
+	if (nPageMode != PAGE_TARGET)
 	{
 		drawWindow(0, 0, LCD_COLS, LCD_ROWS);
-		lcd.setCursor(1, 1);
-		lcd.print("Position: ");
-		lcd.print(fTargetValue, 3);
-		lcd.print("\"");
-
-		lcd.setCursor(1, 2);
-		lcd.print("Speed: ");
-		lcd.print(fSpeedValue, 3);
-		lcd.print(" in/s");
-
-		alignRight(" Jo\7 ", 3, 2);
 	}
-	else if (nPageMode == PAGE_CONFIG)
+
+	switch (nPageMode)
 	{
-		drawWindow(0, 0, LCD_COLS, LCD_ROWS);
-		lcd.setCursor(3, 1);
-		lcd.print("TPI: ");
-		lcd.print(fThreadsPerInchValue, 3);
+		case PAGE_TARGET:
+			lcd.setCursor(1, 1);
+			lcd.print("Tar\7et: ");
+			lcd.print(fTargetValue, 3);
+			lcd.print("\"");
 
-		lcd.setCursor(1, 2);
-		lcd.print("Depth: ");
-		lcd.print(fFenceDepth, 3);
-		lcd.print("\"");
+			lcd.setCursor(2, 2);
+			lcd.print("Speed: ");
+			lcd.print(fSpeedValue, 3);
+			lcd.print(" in/s");
+			break;
+		case PAGE_JOG:
+			lcd.setCursor(1, 1);
+			lcd.print("Position: ");
+			lcd.print(fTargetValue, 3);
+			lcd.print("\"");
 
-		/*lcd.setCursor(2, 0);
-		lcd.print(" Locked ");*/
-		alignRight(" Confi\7 ", 3, 2);
+			lcd.setCursor(1, 2);
+			lcd.print("Speed: ");
+			lcd.print(fSpeedValue, 3);
+			lcd.print(" in/s");
+
+			alignRight(" Jo\7 ", 3, 2);
+			break;
+		case PAGE_CONFIG:
+			lcd.setCursor(3, 1);
+			lcd.print("TPI: ");
+			lcd.print(fThreadsPerInchValue, 3);
+
+			lcd.setCursor(1, 2);
+			lcd.print("Depth: ");
+			lcd.print(fFenceDepth, 3);
+			lcd.print("\"");
+
+			alignRight(" Confi\7 ", 3, 2);
+			break;
 	}
 }
 
