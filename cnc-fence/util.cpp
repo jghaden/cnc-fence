@@ -437,6 +437,12 @@ void editMode(uint8_t nEditMode = EDIT_MODE_CUR)
 	}
 }
 
+void EStopISR()
+{
+	__asm__("nop");
+
+}
+
 void jogMode(uint8_t dir)
 {
 	if (dir == JOG_MINUS)

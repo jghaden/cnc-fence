@@ -62,6 +62,7 @@ void customCharacterSetup();
 void drawWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h);
 void defaultMode();
 void editMode(uint8_t nEditMode = EDIT_MODE_CUR);
+void EStopISR();
 void jogMode(uint8_t dir);
 void keypadHandler();
 void loadEEPROM();
