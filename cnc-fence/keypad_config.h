@@ -14,6 +14,16 @@
 #ifndef __KEYPAD_CONFIG_H__
 #define __KEYPAD_CONFIG_H__
 
+// Pro Micro
+///#define C1    10
+///#define C2    16
+///#define C3    14
+///#define C4    15
+///#define R1    18
+///#define R2    19
+///#define R3    20
+///#define R4    21
+// Mega 2560 R3
 #define C1    22
 #define C2    24
 #define C3    26

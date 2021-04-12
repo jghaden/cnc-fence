@@ -42,11 +42,27 @@
 #define EDIT_MODE_CUR  1
 #define EDIT_MODE_POST 2
 
-#define JOG_MINUS 0
-#define JOG_PLUS  1
+#define JOG_MINUS LOW  // Backwards (CCW)
+#define JOG_PLUS  HIGH // Forwards   (CW)
+
+/********************
+********************/
+
+#define DELAY_US 2500
+
+#define ESTOP 3
+
+#define PROX1_HOME 14 // Home
+#define PROX2_END  15 // End
+
+#define PUL1 41
+#define PUL2 25
+#define DIR1 45
+#define DIR2 29
 
 extern byte CornerTL[], CornerTR[], CornerBL[], CornerBR[], LineHT[], LineHB[], LineV[], LetG[];
 extern bool bEditMode, bSetDenominator, bSetFenceDepthValue, bSetSpeedValue, bSetTargetValue, bSetThreadsPerInchValue;
+extern volatile bool bEStop;
 extern int nBufferIndex, nEditMode, nHoldKey, nKeypadBuffer, nPageMode, nSerialBuffer;
 extern unsigned long nHoldTime;
 extern float fFenceDepth, fSpeedValue ,fTargetValue, fThreadsPerInchValue;
@@ -63,6 +79,7 @@ void drawWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h);
 void defaultMode();
 void editMode(uint8_t nEditMode = EDIT_MODE_CUR);
 void EStopISR();
+void jog();
 void jogMode(uint8_t dir);
 void keypadHandler();
 void loadEEPROM();

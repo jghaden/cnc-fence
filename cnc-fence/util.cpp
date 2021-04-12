@@ -104,6 +104,7 @@ byte LetG[] = {
 };
 
 bool bEditMode = false;
+volatile bool bEStop = false;
 bool bSetDenominator = false;
 bool bSetFenceDepthValue = false;
 bool bSetSpeedValue = false;
@@ -128,8 +129,6 @@ char cValueBufferDenominator[8] = { 0 };
 
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 LiquidCrystal_I2C lcd = LiquidCrystal_I2C(0x27, LCD_COLS, LCD_ROWS);
-
-void(*reset)(void) = 0;
 
 // Prints a string to the center of the LCD
 void alignCenter(const char s[], uint8_t row)
@@ -439,8 +438,21 @@ void editMode(uint8_t nEditMode = EDIT_MODE_CUR)
 
 void EStopISR()
 {
-	__asm__("nop");
+	cli();  // Stop all other interrupts (Default = on)
 
+	if (!bEStop)
+	{
+		bEStop = true;
+	}
+}
+
+void jog()
+{
+	digitalWrite(PUL1, HIGH);
+	digitalWrite(PUL2, HIGH);
+	delayMicroseconds(DELAY_US);
+	digitalWrite(PUL1, LOW);
+	digitalWrite(PUL2, LOW);
 }
 
 void jogMode(uint8_t dir)
@@ -483,53 +495,17 @@ void keypadHandler()
 	{
 		nHoldKey = nKeypadBuffer;
 	}
-	
-	switch (keypad.getState())
+
+	if (keypad.getState() == PRESSED)
 	{
-		case PRESSED:
-			if (bEditMode)
-			{
-				editMode();
-			}
-			else
-			{
-				defaultMode();
-			}
-
-			break;
-		case HOLD:
-			if ((millis() - nHoldTime) > 5000)
-			{
-				if (nPageMode != PAGE_JOG && nHoldKey == '*')
-				{
-					lcd.clear();
-					alignCenter("Resetting", 1);
-					delay(1000);
-					reset();
-				}
-
-				nHoldTime = millis();
-			}
-
-			if ((millis() - nHoldTime) > 100)
-			{
-				if (nPageMode == PAGE_JOG)
-				{
-					switch (nHoldKey)
-					{
-						case '*':
-							jogMode(JOG_MINUS);
-							break;
-						case '#':
-							jogMode(JOG_PLUS);
-							break;
-					}
-
-					nHoldTime = millis();
-				}
-			}			
-
-			break;
+		if (bEditMode)
+		{
+			editMode();
+		}
+		else
+		{
+			defaultMode();
+		}
 	}
 }
 
