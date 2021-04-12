@@ -1,9 +1,9 @@
 /**
   ******************************************************************************
-  * @file    cnc-fence.ino
+  * @file    fence-controller.ino
   * @author  Joshua Haden
-  * @version V0.1.0
-  * @date    26-MAR-2021
+  * @version V0.1.1
+  * @date    12-APR-2021
   * @brief   Main program body
   ******************************************************************************
   * @attention

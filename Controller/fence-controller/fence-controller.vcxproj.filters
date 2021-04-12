@@ -21,7 +21,7 @@
     <ClInclude Include="keypad_config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__vm\.cnc-fence.vsarduino.h">
+    <ClInclude Include="__vm\.fence-controller.vsarduino.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -31,6 +31,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="cnc-fence.ino" />
+    <None Include="fence-controller.ino" />
   </ItemGroup>
 </Project>
