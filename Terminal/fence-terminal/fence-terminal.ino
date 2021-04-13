@@ -11,10 +11,11 @@
   *
   ******************************************************************************
   */
-#define KEY_HOLD 50
-#define JOG_MINUS 8
-#define JOG_PLUS  9
-#define HOME      7
+#include <Keypad.h>
+#include <Key.h>
+#include <LiquidCrystal_I2C.h>
+#include "util.h"
+#include <Wire.h>
 
 void(*reset)(void) = 0;
 
@@ -26,14 +27,27 @@ unsigned long nTime = 0;
 
 void setup()
 {
-	Serial.begin(115200);
+	pinMode(JOG_MINUS, INPUT);
+	pinMode(JOG_PLUS, INPUT);
+	pinMode(HOME, INPUT);
+
+	///Serial.begin(115200);
 	Serial1.begin(115200);
 
 	Serial.println("Starting...");
 
-	pinMode(JOG_MINUS, INPUT);
-	pinMode(JOG_PLUS, INPUT);
-	pinMode(HOME, INPUT);
+	// Configure LCD with I2C address, cols, and rows
+	lcd.init();
+	lcd.backlight();
+	lcd.clear();
+	// Upload customer characters to LCD to draw borders properly
+	customCharacterSetup();
+
+	// Initialize keypad
+	keypad.setHoldTime(100);
+
+	// Print menu to the LCD
+	showMenu();
 }
 
 void loop()
@@ -41,7 +55,7 @@ void loop()
 	while (Serial1.available() > 0)
 	{
 		cSerialBuffer = Serial1.read();
-		Serial.print(cSerialBuffer);
+		///Serial.print(cSerialBuffer);
 
 		if (cSerialBuffer == 'R')
 		{
@@ -83,6 +97,9 @@ void loop()
 			bJogPlus = false;
 			Serial1.print('y');
 		}
+
+		// Continuously call to handle keypad input
+		keypadHandler();
 
 		nTime = millis();
 	}

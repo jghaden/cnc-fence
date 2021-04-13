@@ -11,12 +11,8 @@
   *
   ******************************************************************************
   */
-#include <Keypad.h>
-#include <Key.h>
 #include <eeprom.h>
-#include <LiquidCrystal_I2C.h>
 #include "util.h"
-#include <Wire.h>
 
 void(*reset)(void) = 0;
 
@@ -52,23 +48,6 @@ void setDir(uint8_t dir)
 
 void setup()
 {
-	// Initialize serial port (115200-8-N-1)
-	Serial.begin(115200);
-	Serial1.begin(115200);
-
-	// Configure LCD with I2C address, cols, and rows
-	lcd.init();
-	lcd.backlight();
-	lcd.clear();
-	// Upload customer characters to LCD to draw borders properly
-	customCharacterSetup();
-
-	// Load config data (fence depth, TPI) out of reset
-	loadEEPROM();
-
-	// Initialize keypad
-	keypad.setHoldTime(100);
-
 	// Setup INT4 pin for E-Stop switch
 	pinMode(ESTOP, INPUT);
 	attachInterrupt(digitalPinToInterrupt(ESTOP), EStopISR, LOW);
@@ -79,7 +58,7 @@ void setup()
 	// Configure PCINT for proximity switches
 	// D15 (PCINT9)
 	// D14 (PCINT10)
-	PCICR  |= (1 << PCIE1);	// Enable PCMSK1
+	PCICR |= (1 << PCIE1);	// Enable PCMSK1
 	PCMSK1 |= 0b00000110;	// D15 & D14 interrupt
 
 	// Setup PUL/DIR pins for motors
@@ -90,8 +69,14 @@ void setup()
 	digitalWrite(DIR1, LOW);
 	digitalWrite(DIR2, LOW);
 
-	// Print menu to the LCD
-	showMenu();
+	pinMode(52, INPUT);
+
+	// Initialize serial port (115200-8-N-1)
+	Serial.begin(115200);
+	Serial1.begin(115200);
+
+	// Load config data (fence depth, TPI) out of reset
+	loadEEPROM();
 }
 
 void loop()
@@ -107,6 +92,7 @@ void loop()
 		while (Serial1.available() > 0)
 		{
 			cSerialBuffer = Serial1.read();
+			Serial.print(cSerialBuffer);
 
 			switch (cSerialBuffer)
 			{
@@ -156,10 +142,12 @@ void loop()
 		{
 			jog();
 		}
-	}
 
-	// Continuously call to handle keypad input
-	///keypadHandler();
+		///if (digitalRead(52) == HIGH)
+		///{
+		///	reset();
+		///}
+	}
 }
 
 ISR(PCINT1_vect)
