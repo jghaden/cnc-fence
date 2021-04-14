@@ -16,14 +16,6 @@
 
 void(*reset)(void) = 0;
 
-volatile bool bFenceHome = false;
-volatile bool bFenceEnd = false;
-volatile bool bHoming = false;
-volatile bool bJogMinus = false;
-volatile bool bJogPlus = false;
-volatile bool bProxHome = false;
-volatile bool bProxEnd = false;
-
 char cSerialBuffer;
 unsigned long nHomingTime = 0;
 
@@ -46,7 +38,6 @@ void setup()
 	DDRA |= (1 << PINA3);  // Set PUL2 as output
 	DDRL |= (1 << PINL4);  // Set DIR1 as output
 	DDRA |= (1 << PINA7);  // Set DIR2 as output
-
 	PING &= ~(1 << PING0); // Set PUL1 low
 	PINA &= ~(1 << PINA3); // Set PUL2 low
 	PINL &= ~(PINL4);      // Set DIR1 low
@@ -87,7 +78,14 @@ void loop()
 							bJogMinus = false;
 							bJogPlus = false;
 							nHomingTime = 0;
+							nSpeedValue = 1;
 							setDir(JOG_MINUS);
+						}
+						break;
+					case 'S':
+						if (++nSpeedValue > 5)
+						{
+							nSpeedValue = 1;
 						}
 						break;
 					case 'X':

@@ -45,9 +45,9 @@
 #define DIR1 45 // PL4
 #define DIR2 29 // PA7
 
-extern volatile bool bEStop;
-extern uint8_t nDirState;
-extern float fFenceDepth, fSpeedValue, fTargetValue, fThreadsPerInchValue;
+extern volatile bool bEStop, bFenceHome, bFenceEnd, bHoming, bJogMinus, bJogPlus, bProxHome, bProxEnd;
+extern uint8_t nDirState, nSpeedValue;
+extern float fFenceDepth, fTargetValue, fThreadsPerInchValue;
 
 void EStopISR();
 void jog();

@@ -14,11 +14,18 @@
 #include "util.h"
 
 volatile bool bEStop = false;
+volatile bool bFenceHome = false;
+volatile bool bFenceEnd = false;
+volatile bool bHoming = false;
+volatile bool bJogMinus = false;
+volatile bool bJogPlus = false;
+volatile bool bProxHome = false;
+volatile bool bProxEnd = false;
 
 uint8_t nDirState = LOW;
+uint8_t nSpeedValue = 1;
 
 float fFenceDepth;
-float fSpeedValue;
 float fTargetValue = 0.0f;
 float fThreadsPerInchValue;
 
@@ -38,29 +45,23 @@ void jog()
 	///digitalWrite(PUL2, LOW);
 	PING &= ~(1 << PING0); // Set PUL1 low
 	PINA &= ~(1 << PINA3); // Set PUL2 low
-	delayMicroseconds(DELAY_US / 2);
+	delayMicroseconds((DELAY_US / 2) / nSpeedValue);
 	///digitalWrite(PUL1, HIGH);
 	///digitalWrite(PUL2, HIGH);
 	PING |= (1 << PING0); // Set PUL1 high
 	PINA |= (1 << PINA3); // Set PUL2 high
-	delayMicroseconds(DELAY_US / 2);
+	delayMicroseconds((DELAY_US / 2) / nSpeedValue);
 }
 
 // Load config data from EEPROM (4 KB) to set fence depth and TPI out of reset
 void loadEEPROM()
 {
 	fFenceDepth = EEPROM.read(EEPROM_FENCE_DEPTH);
-	fSpeedValue = EEPROM.read(EEPROM_SPEED);
 	fThreadsPerInchValue = EEPROM.read(EEPROM_TPI);
 
 	if (isnan(fFenceDepth))
 	{
 		fFenceDepth = 30.0f;
-	}
-
-	if (isnan(fSpeedValue))
-	{
-		fSpeedValue = 1.0f;
 	}
 
 	if (isnan(fThreadsPerInchValue))

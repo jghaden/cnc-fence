@@ -14,9 +14,7 @@
 
 // Used by showMenu() to know what page to print to the LCD
 #define PAGE_TARGET 0
-#define PAGE_JOG	1
-#define PAGE_CONFIG 2
-#define PAGE_SYSTEM 3
+#define PAGE_CONFIG 1
 
 // EEPROM addresses
 ///#define EEPROM_FENCE_DEPTH 0xC0
@@ -31,17 +29,18 @@
 #define LCD_COLS 20
 #define LCD_ROWS 4
 
-#define KEY_HOLD 50
-#define JOG_MINUS 8
-#define JOG_PLUS  9
-#define HOME      7
+#define KEY_HOLD_TIME  50 // ms
+#define KEY_JOG_MINUS  8
+#define KEY_JOG_PLUS   9
+#define KEY_HOME       7
+#define KEY_GO         6
 
-extern byte CornerTL[], CornerTR[], CornerBL[], CornerBR[], LineHT[], LineHB[], LineV[], LetG[];
+extern byte CornerTL[], CornerTR[], CornerBL[], CornerBR[], LineH[], LineV[], BlockPartial[], BlockFull[], LetG[];
 extern bool bEditMode, bSetDenominator, bSetFenceDepthValue, bSetSpeedValue, bSetTargetValue, bSetThreadsPerInchValue;
-extern volatile bool bEStop;
-extern int nBufferIndex, nEditMode, nHoldKey, nKeypadBuffer, nPageMode, nSerialBuffer;
+extern volatile bool bEStop, bHomed;
+extern uint8_t nBufferIndex, nEditMode, nHoldKey, nKeypadBuffer, nPageMode, nSerialBuffer, nSpeedValue, nWarningIndex;
 extern unsigned long nHoldTime;
-extern float fFenceDepth, fSpeedValue, fTargetValue, fThreadsPerInchValue;
+extern float fFenceDepth, fTargetValue, fThreadsPerInchValue;
 extern char cValueBufferNumerator[8], cValueBufferDenominator[8];
 
 extern Keypad keypad;
@@ -55,9 +54,9 @@ void customCharacterSetup();
 void defaultMode();
 void drawWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h);
 void editMode(uint8_t nEditMode = EDIT_MODE_CUR);
-void jogMode(uint8_t dir);
 void keypadHandler();
 void showMenu();
+void warning(uint8_t x, uint8_t y);
 
 uint8_t getLength(const char s[]);
 

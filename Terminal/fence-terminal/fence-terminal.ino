@@ -24,17 +24,16 @@ volatile bool bJogPlus = false;
 
 char cSerialBuffer;
 unsigned long nTime = 0;
+unsigned long nLCDTime = 0;
 
 void setup()
 {
-	pinMode(JOG_MINUS, INPUT);
-	pinMode(JOG_PLUS, INPUT);
-	pinMode(HOME, INPUT);
+	pinMode(KEY_JOG_MINUS, INPUT);
+	pinMode(KEY_JOG_PLUS, INPUT);
+	pinMode(KEY_HOME, INPUT);
 
 	///Serial.begin(115200);
 	Serial1.begin(115200);
-
-	///Serial1.println("Starting Terminal...");
 
 	// Configure LCD with I2C address, cols, and rows
 	lcd.init();
@@ -63,22 +62,22 @@ void loop()
 		}
 	}
 
-	if (millis() - nTime > KEY_HOLD)
+	if (millis() - nTime > KEY_HOLD_TIME)
 	{
 		//
 		// button hold down
 		//
-		if (digitalRead(HOME) == LOW)
+		if (digitalRead(KEY_HOME) == LOW)
 		{
 			Serial1.print('H');
 		}
 
-		if (digitalRead(JOG_MINUS) == LOW && !bJogMinus)
+		if (digitalRead(KEY_JOG_MINUS) == LOW && !bJogMinus)
 		{
 			bJogMinus = true;
 			Serial1.print('X');
 		}
-		else if (digitalRead(JOG_PLUS) == LOW && !bJogPlus)
+		else if (digitalRead(KEY_JOG_PLUS) == LOW && !bJogPlus)
 		{
 			bJogPlus = true;
 			Serial1.print('Y');
@@ -87,12 +86,12 @@ void loop()
 		//
 		// button release
 		//
-		if (digitalRead(JOG_MINUS) == HIGH && bJogMinus)
+		if (digitalRead(KEY_JOG_MINUS) == HIGH && bJogMinus)
 		{
 			bJogMinus = false;
 			Serial1.print('x');
 		}
-		else if (digitalRead(JOG_PLUS) == HIGH && bJogPlus)
+		else if (digitalRead(KEY_JOG_PLUS) == HIGH && bJogPlus)
 		{
 			bJogPlus = false;
 			Serial1.print('y');
@@ -102,5 +101,18 @@ void loop()
 		keypadHandler();
 
 		nTime = millis();
+	}
+
+	if (millis() - nLCDTime > 300)
+	{
+		warning(2, 0);
+		warning(17, 0);
+
+		if (nWarningIndex++ > 1)
+		{
+			nWarningIndex = 0;
+		}
+
+		nLCDTime = millis();
 	}
 }
