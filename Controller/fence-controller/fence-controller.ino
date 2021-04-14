@@ -33,14 +33,18 @@ void setDir(uint8_t dir)
 	if (dir == JOG_MINUS)
 	{
 		nDirState = JOG_MINUS;
-		digitalWrite(DIR1, JOG_MINUS);
-		digitalWrite(DIR2, JOG_MINUS);
+		///digitalWrite(DIR1, JOG_MINUS);
+		///digitalWrite(DIR2, JOG_MINUS);
+		PINL &= ~(PINL4);
+		PINA &= ~(PINA7);
 	}
 	else if (dir == JOG_PLUS)
 	{
 		nDirState = JOG_PLUS;
-		digitalWrite(DIR1, JOG_PLUS);
-		digitalWrite(DIR2, JOG_PLUS);
+		///digitalWrite(DIR1, JOG_PLUS);
+		///digitalWrite(DIR2, JOG_PLUS);
+		PINL ^= (1 << 4);
+		PINA ^= (1 << 7);
 	}
 
 	delayMicroseconds(20);
@@ -58,7 +62,7 @@ void setup()
 	// Configure PCINT for proximity switches
 	// D15 (PCINT9)
 	// D14 (PCINT10)
-	PCICR |= (1 << PCIE1);	// Enable PCMSK1
+	PCICR  |= (1 << PCIE1);	// Enable PCMSK1
 	PCMSK1 |= 0b00000110;	// D15 & D14 interrupt
 
 	// Setup PUL/DIR pins for motors
@@ -79,8 +83,13 @@ void setup()
 	loadEEPROM();
 }
 
+unsigned long t0 = 0;
+unsigned long t1 = 0;
+
 void loop()
 {
+	t0 = micros();
+
 	// Reset when coming out of EStopISR
 	if (bEStop && digitalRead(3) == HIGH)
 	{
@@ -94,30 +103,36 @@ void loop()
 			cSerialBuffer = Serial1.read();
 			Serial.print(cSerialBuffer);
 
-			switch (cSerialBuffer)
+			if (!bHoming)
 			{
-				case 'H':
-					bFenceHome = false;
-					bHoming = true;
-					bJogMinus = false;
-					bJogPlus = false;
-					nHomingTime = 0;
-					setDir(JOG_MINUS);
-					break;
-				case 'X':
-					bJogMinus = true;
-					setDir(JOG_MINUS);
-					break;
-				case 'Y':
-					bJogPlus = true;
-					setDir(JOG_PLUS);
-					break;
-				case 'x':
-					bJogMinus = false;
-					break;
-				case 'y':
-					bJogPlus = false;
-					break;
+				switch (cSerialBuffer)
+				{
+					case 'H':
+						if (digitalRead(PROX1_HOME) == HIGH)
+						{
+							bFenceHome = false;
+							bHoming = true;
+							bJogMinus = false;
+							bJogPlus = false;
+							nHomingTime = 0;
+							setDir(JOG_MINUS);
+						}
+						break;
+					case 'X':
+						bJogMinus = true;
+						setDir(JOG_MINUS);
+						break;
+					case 'Y':
+						bJogPlus = true;
+						setDir(JOG_PLUS);
+						break;
+					case 'x':
+						bJogMinus = false;
+						break;
+					case 'y':
+						bJogPlus = false;
+						break;
+				}
 			}
 		}
 		
@@ -148,6 +163,8 @@ void loop()
 		///	reset();
 		///}
 	}
+
+	Serial.println(micros() - t0);
 }
 
 ISR(PCINT1_vect)
@@ -156,6 +173,7 @@ ISR(PCINT1_vect)
 	///bProxEnd  = (digitalRead(PROX2_END)  == LOW) ? true : false;
 
 	if (digitalRead(PROX1_HOME) == LOW)
+	///if((PINJ & PINJ1) && !bProxHome)
 	{
 		bFenceHome = true;
 		bHoming = false;
@@ -168,8 +186,11 @@ ISR(PCINT1_vect)
 	}
 	
 	if (digitalRead(PROX2_END) == LOW)
+	///if((PINJ & PINJ0) && !bProxEnd)
 	{
+		bFenceHome = true;
 		bFenceEnd = true;
+		bHoming = false;
 		bProxEnd = true;
 		///Serial.println("End");
 	}

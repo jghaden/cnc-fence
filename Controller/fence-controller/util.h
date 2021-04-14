@@ -40,10 +40,10 @@
 #define PROX2_END  15 // End
 
 // PUL/DIR pins for motor drivers
-#define PUL1 41
-#define PUL2 25
-#define DIR1 45
-#define DIR2 29
+#define PUL1 41 // PG0
+#define PUL2 25 // PA3
+#define DIR1 45 // PL4
+#define DIR2 29 // PA7
 
 extern volatile bool bEStop;
 extern float fFenceDepth, fSpeedValue, fTargetValue, fThreadsPerInchValue;

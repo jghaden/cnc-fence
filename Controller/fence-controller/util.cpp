@@ -34,9 +34,14 @@ void jog()
 {
 	digitalWrite(PUL1, HIGH);
 	digitalWrite(PUL2, HIGH);
-	delayMicroseconds(DELAY_US);
+	///PING |= 0;
+	///PINA |= (1 << 3);
+	delayMicroseconds(DELAY_US / 2);
 	digitalWrite(PUL1, LOW);
 	digitalWrite(PUL2, LOW);
+	///PING &= ~(0);
+	///PINA &= ~(1 << 3);
+	delayMicroseconds(DELAY_US / 2);
 }
 
 // Load config data from EEPROM (4 KB) to set fence depth and TPI out of reset

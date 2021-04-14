@@ -34,7 +34,7 @@ void setup()
 	///Serial.begin(115200);
 	Serial1.begin(115200);
 
-	Serial.println("Starting...");
+	///Serial1.println("Starting Terminal...");
 
 	// Configure LCD with I2C address, cols, and rows
 	lcd.init();

@@ -18,9 +18,6 @@
     <ClInclude Include="util.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="keypad_config.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="__vm\.fence-controller.vsarduino.h">
       <Filter>Header Files</Filter>
     </ClInclude>
