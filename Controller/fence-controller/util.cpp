@@ -15,6 +15,8 @@
 
 volatile bool bEStop = false;
 
+uint8_t nDirState = LOW;
+
 float fFenceDepth;
 float fSpeedValue;
 float fTargetValue = 0.0f;
@@ -32,15 +34,15 @@ void EStopISR()
 
 void jog()
 {
-	digitalWrite(PUL1, HIGH);
-	digitalWrite(PUL2, HIGH);
-	///PING |= 0;
-	///PINA |= (1 << 3);
+	///digitalWrite(PUL1, LOW);
+	///digitalWrite(PUL2, LOW);
+	PING &= ~(1 << PING0); // Set PUL1 low
+	PINA &= ~(1 << PINA3); // Set PUL2 low
 	delayMicroseconds(DELAY_US / 2);
-	digitalWrite(PUL1, LOW);
-	digitalWrite(PUL2, LOW);
-	///PING &= ~(0);
-	///PINA &= ~(1 << 3);
+	///digitalWrite(PUL1, HIGH);
+	///digitalWrite(PUL2, HIGH);
+	PING |= (1 << PING0); // Set PUL1 high
+	PINA |= (1 << PINA3); // Set PUL2 high
 	delayMicroseconds(DELAY_US / 2);
 }
 
@@ -65,4 +67,23 @@ void loadEEPROM()
 	{
 		fThreadsPerInchValue = 24.0f;
 	}
+}
+
+// 
+void setDir(uint8_t dir)
+{
+	if (dir == JOG_MINUS)
+	{
+		nDirState = JOG_MINUS;
+		PINL &= ~(PINL4); // Set DIR1 low
+		PINA &= ~(PINA7); // Set DIR2 low
+	}
+	else if (dir == JOG_PLUS)
+	{
+		nDirState = JOG_PLUS;
+		PINL ^= (1 << PINL4); // Set DIR1 high
+		PINA ^= (1 << PINA7); // Set DIR2 high
+	}
+
+	delayMicroseconds(20);
 }

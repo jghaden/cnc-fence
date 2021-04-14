@@ -46,10 +46,12 @@
 #define DIR2 29 // PA7
 
 extern volatile bool bEStop;
+extern uint8_t nDirState;
 extern float fFenceDepth, fSpeedValue, fTargetValue, fThreadsPerInchValue;
 
 void EStopISR();
 void jog();
 void loadEEPROM();
+void setDir(uint8_t dir);
 
 #endif

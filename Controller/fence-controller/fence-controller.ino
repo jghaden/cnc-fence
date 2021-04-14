@@ -25,55 +25,32 @@ volatile bool bProxHome = false;
 volatile bool bProxEnd = false;
 
 char cSerialBuffer;
-uint8_t nDirState = LOW;
 unsigned long nHomingTime = 0;
-
-void setDir(uint8_t dir)
-{
-	if (dir == JOG_MINUS)
-	{
-		nDirState = JOG_MINUS;
-		///digitalWrite(DIR1, JOG_MINUS);
-		///digitalWrite(DIR2, JOG_MINUS);
-		PINL &= ~(PINL4);
-		PINA &= ~(PINA7);
-	}
-	else if (dir == JOG_PLUS)
-	{
-		nDirState = JOG_PLUS;
-		///digitalWrite(DIR1, JOG_PLUS);
-		///digitalWrite(DIR2, JOG_PLUS);
-		PINL ^= (1 << 4);
-		PINA ^= (1 << 7);
-	}
-
-	delayMicroseconds(20);
-}
 
 void setup()
 {
-	// Setup INT4 pin for E-Stop switch
-	pinMode(ESTOP, INPUT);
-	attachInterrupt(digitalPinToInterrupt(ESTOP), EStopISR, LOW);
-
 	// Setup proximity switch pins
-	pinMode(PROX1_HOME, INPUT);
-	pinMode(PROX2_END, INPUT);
-	// Configure PCINT for proximity switches
 	// D15 (PCINT9)
 	// D14 (PCINT10)
+	DDRJ &= 0b11111100;     // Set D15 & D15 as inputs
+	// Configure PCINT for proximity switches
 	PCICR  |= (1 << PCIE1);	// Enable PCMSK1
 	PCMSK1 |= 0b00000110;	// D15 & D14 interrupt
 
-	// Setup PUL/DIR pins for motors
-	pinMode(PUL1, OUTPUT);
-	pinMode(PUL2, OUTPUT);
-	pinMode(DIR1, OUTPUT);
-	pinMode(DIR2, OUTPUT);
-	digitalWrite(DIR1, LOW);
-	digitalWrite(DIR2, LOW);
+	// Setup INT4 pin for E-Stop switch
+	DDRE &= ~(1 << PINE4); // Set ESTOP as input
+	attachInterrupt(digitalPinToInterrupt(ESTOP), EStopISR, LOW);
 
-	pinMode(52, INPUT);
+	// Setup PUL/DIR pins for motors
+	DDRG |= (1 << PING0);  // Set PUL1 as output
+	DDRA |= (1 << PINA3);  // Set PUL2 as output
+	DDRL |= (1 << PINL4);  // Set DIR1 as output
+	DDRA |= (1 << PINA7);  // Set DIR2 as output
+
+	PING &= ~(1 << PING0); // Set PUL1 low
+	PINA &= ~(1 << PINA3); // Set PUL2 low
+	PINL &= ~(PINL4);      // Set DIR1 low
+	PINA &= ~(PINA7);      // Set DIR2 low
 
 	// Initialize serial port (115200-8-N-1)
 	Serial.begin(115200);
@@ -83,13 +60,8 @@ void setup()
 	loadEEPROM();
 }
 
-unsigned long t0 = 0;
-unsigned long t1 = 0;
-
 void loop()
 {
-	t0 = micros();
-
 	// Reset when coming out of EStopISR
 	if (bEStop && digitalRead(3) == HIGH)
 	{
@@ -157,23 +129,13 @@ void loop()
 		{
 			jog();
 		}
-
-		///if (digitalRead(52) == HIGH)
-		///{
-		///	reset();
-		///}
 	}
-
-	Serial.println(micros() - t0);
 }
 
 ISR(PCINT1_vect)
 {
-	///bProxHome = (digitalRead(PROX1_HOME) == LOW) ? true : false;
-	///bProxEnd  = (digitalRead(PROX2_END)  == LOW) ? true : false;
-
+	///if((PINJ & ~(1 << PINJ1)) && !bProxHome)
 	if (digitalRead(PROX1_HOME) == LOW)
-	///if((PINJ & PINJ1) && !bProxHome)
 	{
 		bFenceHome = true;
 		bHoming = false;
@@ -185,8 +147,8 @@ ISR(PCINT1_vect)
 		bProxHome = false;
 	}
 	
+	///if((PINJ & ~(PINJ0)) && !bProxEnd)
 	if (digitalRead(PROX2_END) == LOW)
-	///if((PINJ & PINJ0) && !bProxEnd)
 	{
 		bFenceHome = true;
 		bFenceEnd = true;
