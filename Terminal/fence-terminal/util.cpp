@@ -108,8 +108,12 @@ bool bSetSpeedValue = false;
 bool bSetTargetValue = false;
 bool bSetThreadsPerInchValue = false;
 
-volatile bool bEStop;
-volatile bool bHomed;
+volatile bool bEStop = false;
+volatile bool bHomed = false;
+volatile bool bJogMinus = false;
+volatile bool bJogPlus = false;
+
+char cSerialBuffer;
 
 uint8_t nBufferIndex = 0;
 uint8_t nHoldKey = 0;
@@ -119,17 +123,21 @@ uint8_t nSerialBuffer = 0;
 uint8_t nSpeedValue = 1;
 uint8_t nWarningIndex = 0;
 
-unsigned long nHoldTime = 0;
-
 float fFenceDepth;
 float fTargetValue = 0.0f;
 float fThreadsPerInchValue;
+
+unsigned long nTime = 0;
+unsigned long nLCDTime = 0;
+unsigned long nHoldTime = 0;
 
 char cValueBufferNumerator[8] = { 0 };
 char cValueBufferDenominator[8] = { 0 };
 
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 LiquidCrystal_I2C lcd = LiquidCrystal_I2C(0x27, LCD_COLS, LCD_ROWS);
+
+void(*reset)(void) = 0;
 
 // Prints a string to the center of the LCD
 void alignCenter(const char s[], uint8_t row)
@@ -143,6 +151,54 @@ void alignRight(const char s[], uint8_t row, uint8_t offset_x = 0)
 {
 	lcd.setCursor(LCD_COLS - getLength(s) - offset_x, row);
 	lcd.print(s);
+}
+
+void buttonHandler()
+{
+	if ((millis() - nTime) > KEY_HOLD_TIME)
+	{
+		//
+		// button hold down
+		//
+		if (digitalRead(KEY_HOME) == LOW)
+		{
+			Serial1.print('H');
+			bHomed = false;
+		}
+
+		if (bHomed)
+		{
+			if (digitalRead(KEY_JOG_MINUS) == LOW && !bJogMinus)
+			{
+				bJogMinus = true;
+				Serial1.print('X');
+			}
+			else if (digitalRead(KEY_JOG_PLUS) == LOW && !bJogPlus)
+			{
+				bJogPlus = true;
+				Serial1.print('Y');
+			}
+
+			//
+			// button release
+			//
+			if (digitalRead(KEY_JOG_MINUS) == HIGH && bJogMinus)
+			{
+				bJogMinus = false;
+				Serial1.print('x');
+			}
+			else if (digitalRead(KEY_JOG_PLUS) == HIGH && bJogPlus)
+			{
+				bJogPlus = false;
+				Serial1.print('y');
+			}
+
+			// Continuously call to handle keypad input
+			keypadHandler();
+		}
+		
+		nTime = millis();
+	}
 }
 
 // Clears row on the LCD without resetting the whole screen
@@ -170,6 +226,34 @@ void clearRowPartial(uint8_t x1, uint8_t x2, uint8_t row)
 	{
 		lcd.write(' ');
 		i++;
+	}
+}
+
+void commandHandler()
+{
+	while (Serial1.available() > 0)
+	{
+		cSerialBuffer = Serial1.read();
+		///Serial.write(cSerialBuffer);
+
+		if (cSerialBuffer == 'R')
+		{
+			bEStop = false;
+			reset();
+		}
+
+		if (cSerialBuffer == 'E')
+		{
+			bEStop = true;
+			nPageMode = PAGE_ESTOP;
+			showMenu();
+		}
+		else if (cSerialBuffer == 'H')
+		{
+			bHomed = true;
+			nPageMode = PAGE_TARGET;
+			showMenu();
+		}
 	}
 }
 
@@ -262,6 +346,8 @@ void defaultMode()
 			}
 			break;
 		case 'D':
+			nPageMode++;
+			showMenu();
 			break;
 	}
 }
@@ -439,7 +525,10 @@ void showMenu()
 	lcd.blink_off();
 	lcd.clear();
 
-	alignCenter(" Needs Homin\7 ", 0);
+	if (!bHomed)
+	{
+		alignCenter(" Needs Homin\7 ", 0);
+	}
 
 	if (nPageMode != PAGE_TARGET)
 	{
@@ -480,6 +569,10 @@ void showMenu()
 			lcd.print("\"");
 
 			alignRight(" Confi\7 ", 3, 2);
+			break;
+		case PAGE_ESTOP:
+			alignCenter("! E-Stop !", 1);
+			alignCenter("Will reset", 2);
 			break;
 	}
 }

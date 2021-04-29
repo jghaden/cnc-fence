@@ -15,6 +15,7 @@
 // Used by showMenu() to know what page to print to the LCD
 #define PAGE_TARGET 0
 #define PAGE_CONFIG 1
+#define PAGE_ESTOP  2
 
 // EEPROM addresses
 ///#define EEPROM_FENCE_DEPTH 0xC0
@@ -35,21 +36,26 @@
 #define KEY_HOME       7
 #define KEY_GO         6
 
+#define FENCE_TPI   20
+#define FENCE_DEPTH 48
+
 extern byte CornerTL[], CornerTR[], CornerBL[], CornerBR[], LineH[], LineV[], BlockPartial[], BlockFull[], LetG[];
 extern bool bEditMode, bSetDenominator, bSetFenceDepthValue, bSetSpeedValue, bSetTargetValue, bSetThreadsPerInchValue;
-extern volatile bool bEStop, bHomed;
+extern volatile bool bEStop, bHomed, bJogMinus, bJogPlus;
 extern uint8_t nBufferIndex, nEditMode, nHoldKey, nKeypadBuffer, nPageMode, nSerialBuffer, nSpeedValue, nWarningIndex;
-extern unsigned long nHoldTime;
+extern unsigned long nHoldTime, nTime, nLCDTime;
 extern float fFenceDepth, fTargetValue, fThreadsPerInchValue;
-extern char cValueBufferNumerator[8], cValueBufferDenominator[8];
+extern char  cSerialBuffer, cValueBufferNumerator[8], cValueBufferDenominator[8];
 
 extern Keypad keypad;
 extern LiquidCrystal_I2C lcd;
 
 void alignCenter(const char s[], uint8_t row);
 void alignRight(const char s[], uint8_t row, uint8_t offset_x = 0);
+void buttonHandler();
 void clearRow(uint8_t row);
 void clearRowPartial(uint8_t x1, uint8_t x2, uint8_t row);
+void commandHandler();
 void customCharacterSetup();
 void defaultMode();
 void drawWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h);

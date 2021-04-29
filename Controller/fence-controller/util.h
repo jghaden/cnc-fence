@@ -36,8 +36,8 @@
 #define ESTOP 3
 
 // Prxomity switch pins
-#define PROX1_HOME 14 // Home
-#define PROX2_END  15 // End
+#define PROX1_HOME 15 // Home
+#define PROX2_END  14 // End
 
 // PUL/DIR pins for motor drivers
 #define PUL1 41 // PG0
@@ -45,12 +45,21 @@
 #define DIR1 45 // PL4
 #define DIR2 29 // PA7
 
+#define CONF_STEPS 400
+#define CONF_TPI   20 // TPI on demo machine
+#define CONF_DEPTH 48 // inches
+
+#define Jog_in(x) (CONF_STEPS * CONF_TPI * x)
+#define Jog_mm(x) ((CONF_STEPS * CONF_TPI * x) / 25.4f)
+
 extern volatile bool bEStop, bFenceHome, bFenceEnd, bHoming, bJogMinus, bJogPlus, bProxHome, bProxEnd;
-extern uint8_t nDirState, nSpeedValue;
+extern char cSerialBuffer;
+extern uint8_t nDirState, nSpeedValue, nSpeedTempValue;
 extern float fFenceDepth, fTargetValue, fThreadsPerInchValue;
+extern unsigned long nHomingTime;
 
 void EStopISR();
-void jog();
+void jog(uint8_t steps = 1);
 void loadEEPROM();
 void setDir(uint8_t dir);
 

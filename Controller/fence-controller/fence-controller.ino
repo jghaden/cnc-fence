@@ -16,9 +16,6 @@
 
 void(*reset)(void) = 0;
 
-char cSerialBuffer;
-unsigned long nHomingTime = 0;
-
 void setup()
 {
 	// Setup proximity switch pins
@@ -54,10 +51,15 @@ void setup()
 void loop()
 {
 	// Reset when coming out of EStopISR
-	if (bEStop && digitalRead(3) == HIGH)
+	if (bEStop)
 	{
-		Serial1.print('R');
-		reset();
+		///Serial1.print('E');
+
+		if (digitalRead(3) == HIGH)
+		{
+			Serial1.print('R');
+			reset();
+		}
 	}
 	else if (!bEStop)
 	{
@@ -70,6 +72,17 @@ void loop()
 			{
 				switch (cSerialBuffer)
 				{
+					case 'C':
+						Serial1.print('C');
+
+						char cBuf[32];
+						strcat(cBuf, ':' + String(5.08f).c_str());
+						strcat(cBuf, ':' + String(48.0f).c_str());
+
+						delayMicroseconds(20);
+
+						Serial1.print(cBuf);
+						break;
 					case 'H':
 						if (digitalRead(PROX1_HOME) == HIGH)
 						{
@@ -78,6 +91,7 @@ void loop()
 							bJogMinus = false;
 							bJogPlus = false;
 							nHomingTime = 0;
+							nSpeedTempValue = nSpeedValue;
 							nSpeedValue = 1;
 							setDir(JOG_MINUS);
 						}
@@ -138,7 +152,9 @@ ISR(PCINT1_vect)
 		bFenceHome = true;
 		bHoming = false;
 		bProxHome = true;
+		nSpeedValue = nSpeedTempValue;
 		///Serial.println("Home");
+		Serial1.println("H");
 	}
 	else
 	{
