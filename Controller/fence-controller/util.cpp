@@ -21,6 +21,7 @@ volatile bool bJogMinus = false;
 volatile bool bJogPlus = false;
 volatile bool bProxHome = false;
 volatile bool bProxEnd = false;
+volatile bool bSerialParams = false;
 
 char cSerialBuffer;
 
@@ -30,9 +31,12 @@ uint8_t nSpeedTempValue = 1;
 
 float fFenceDepth;
 float fTargetValue = 0.0f;
+float fTargetValueTemp = 0.0f;
 float fThreadsPerInchValue;
 
 unsigned long nHomingTime = 0;
+
+String sSerialBuffer;
 
 void EStopISR()
 {
@@ -46,9 +50,9 @@ void EStopISR()
 	sei(); // Re-enable interrupts
 }
 
-void jog(uint8_t steps = 1)
+void jog(uint32_t steps = 1)
 {
-	for (uint8_t i = 0; i < steps; i++)
+	for (uint32_t i = 0; i < steps; i++)
 	{
 		PING &= ~(1 << PING0); // Set PUL1 low
 		PINA &= ~(1 << PINA3); // Set PUL2 low
@@ -56,6 +60,18 @@ void jog(uint8_t steps = 1)
 		PING |= (1 << PING0); // Set PUL1 high
 		PINA |= (1 << PINA3); // Set PUL2 high
 		delayMicroseconds((DELAY_US / 2) / nSpeedValue);
+
+		if (steps == 1)
+		{
+			if (nDirState == JOG_MINUS)
+			{
+				fTargetValue -= (float)(1.0f / STEPS_IN(1));
+			}
+			else if (nDirState == JOG_PLUS)
+			{
+				fTargetValue += (float)(1.0f / STEPS_IN(1));
+			}
+		}
 	}
 }
 
@@ -67,12 +83,12 @@ void loadEEPROM()
 
 	if (isnan(fFenceDepth))
 	{
-		fFenceDepth = 30.0f;
+		fFenceDepth = 48.0f;
 	}
 
 	if (isnan(fThreadsPerInchValue))
 	{
-		fThreadsPerInchValue = 24.0f;
+		fThreadsPerInchValue = 20.0f;
 	}
 }
 

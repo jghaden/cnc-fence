@@ -41,7 +41,7 @@
 
 extern byte CornerTL[], CornerTR[], CornerBL[], CornerBR[], LineH[], LineV[], BlockPartial[], BlockFull[], LetG[];
 extern bool bEditMode, bSetDenominator, bSetFenceDepthValue, bSetSpeedValue, bSetTargetValue, bSetThreadsPerInchValue;
-extern volatile bool bEStop, bHomed, bJogMinus, bJogPlus;
+extern volatile bool bEStop, bHomed, bJogMinus, bJogPlus, bGoTarget;
 extern uint8_t nBufferIndex, nEditMode, nHoldKey, nKeypadBuffer, nPageMode, nSerialBuffer, nSpeedValue, nWarningIndex;
 extern unsigned long nHoldTime, nTime, nLCDTime;
 extern float fFenceDepth, fTargetValue, fThreadsPerInchValue;

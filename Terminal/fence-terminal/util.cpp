@@ -112,6 +112,7 @@ volatile bool bEStop = false;
 volatile bool bHomed = false;
 volatile bool bJogMinus = false;
 volatile bool bJogPlus = false;
+volatile bool bGoTarget = false;
 
 char cSerialBuffer;
 
@@ -123,9 +124,9 @@ uint8_t nSerialBuffer = 0;
 uint8_t nSpeedValue = 1;
 uint8_t nWarningIndex = 0;
 
-float fFenceDepth;
+float fFenceDepth = FENCE_DEPTH;
 float fTargetValue = 0.0f;
-float fThreadsPerInchValue;
+float fThreadsPerInchValue = FENCE_TPI;
 
 unsigned long nTime = 0;
 unsigned long nLCDTime = 0;
@@ -164,6 +165,7 @@ void buttonHandler()
 		{
 			Serial1.print('H');
 			bHomed = false;
+			showMenu();
 		}
 
 		if (bHomed)
@@ -178,6 +180,16 @@ void buttonHandler()
 				bJogPlus = true;
 				Serial1.print('Y');
 			}
+			else if (digitalRead(KEY_GO) == LOW && !bGoTarget)
+			{
+				bGoTarget = true;
+
+				char cBuf[32] = { 'G', ':' };
+
+				strcat(cBuf, String(fTargetValue, 3).c_str());
+
+				Serial1.print(cBuf);
+			}
 
 			//
 			// button release
@@ -191,6 +203,10 @@ void buttonHandler()
 			{
 				bJogPlus = false;
 				Serial1.print('y');
+			}
+			else if (digitalRead(KEY_GO) == HIGH && bGoTarget)
+			{
+				bGoTarget = false;
 			}
 
 			// Continuously call to handle keypad input
@@ -367,7 +383,7 @@ void editMode(uint8_t nEditMode = EDIT_MODE_CUR)
 		cValueBufferDenominator[0] = '1';
 		break;
 	case EDIT_MODE_CUR:
-		if (nBufferIndex < 5)
+		if (nBufferIndex < 6)
 		{
 			if ((nKeypadBuffer - 48) >= 0 && (nKeypadBuffer - 48 <= 9))
 			{

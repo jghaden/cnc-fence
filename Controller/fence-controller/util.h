@@ -20,6 +20,7 @@
 	#include "WProgram.h"
 #endif
 #include <EEPROM.h>
+#include <math.h>
 
 // EEPROM addresses
 #define EEPROM_FENCE_DEPTH 0xC0
@@ -45,21 +46,22 @@
 #define DIR1 45 // PL4
 #define DIR2 29 // PA7
 
-#define CONF_STEPS 400
+#define CONF_STEPS 800
 #define CONF_TPI   20 // TPI on demo machine
 #define CONF_DEPTH 48 // inches
 
-#define Jog_in(x) (CONF_STEPS * CONF_TPI * x)
-#define Jog_mm(x) ((CONF_STEPS * CONF_TPI * x) / 25.4f)
+#define JOG_IN(x) (CONF_STEPS * CONF_TPI * x)
+#define STEPS_IN(x) ((CONF_STEPS * CONF_TPI) / x)
 
-extern volatile bool bEStop, bFenceHome, bFenceEnd, bHoming, bJogMinus, bJogPlus, bProxHome, bProxEnd;
+extern volatile bool bEStop, bFenceHome, bFenceEnd, bHoming, bJogMinus, bJogPlus, bProxHome, bProxEnd, bSerialParams;
 extern char cSerialBuffer;
 extern uint8_t nDirState, nSpeedValue, nSpeedTempValue;
-extern float fFenceDepth, fTargetValue, fThreadsPerInchValue;
+extern float fFenceDepth, fTargetValue, fTargetValueTemp, fThreadsPerInchValue;
 extern unsigned long nHomingTime;
+extern String sSerialBuffer;
 
 void EStopISR();
-void jog(uint8_t steps = 1);
+void jog(uint32_t steps = 1);
 void loadEEPROM();
 void setDir(uint8_t dir);
 

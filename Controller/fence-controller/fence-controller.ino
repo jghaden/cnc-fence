@@ -43,6 +43,7 @@ void setup()
 	// Initialize serial port (115200-8-N-1)
 	Serial.begin(115200);
 	Serial1.begin(115200);
+	Serial1.setTimeout(50);
 
 	// Load config data (fence depth, TPI) out of reset
 	loadEEPROM();
@@ -65,23 +66,33 @@ void loop()
 	{
 		while (Serial1.available() > 0)
 		{
-			cSerialBuffer = Serial1.read();
-			Serial.print(cSerialBuffer);
+			sSerialBuffer = Serial1.readString();
+			cSerialBuffer = sSerialBuffer[0];
+
+			bSerialParams = (sSerialBuffer[1] == ':') ? true : false;
 
 			if (!bHoming)
 			{
 				switch (cSerialBuffer)
 				{
-					case 'C':
-						Serial1.print('C');
+					case 'G':
+						sSerialBuffer[0] = '0';
+						sSerialBuffer[1] = '0';
 
-						char cBuf[32];
-						strcat(cBuf, ':' + String(5.08f).c_str());
-						strcat(cBuf, ':' + String(48.0f).c_str());
+						fTargetValueTemp = atof(sSerialBuffer.c_str());
 
-						delayMicroseconds(20);
+						if (fTargetValue - fTargetValueTemp < 0)
+						{
+							setDir(JOG_PLUS);
+						}
+						else
+						{
+							setDir(JOG_MINUS);
+						}
 
-						Serial1.print(cBuf);
+						jog(fabs(JOG_IN(fTargetValueTemp) - JOG_IN(fTargetValue)));
+
+						fTargetValue = fTargetValueTemp;
 						break;
 					case 'H':
 						if (digitalRead(PROX1_HOME) == HIGH)
@@ -153,7 +164,7 @@ ISR(PCINT1_vect)
 		bHoming = false;
 		bProxHome = true;
 		nSpeedValue = nSpeedTempValue;
-		///Serial.println("Home");
+		fTargetValue = 0;
 		Serial1.println("H");
 	}
 	else
@@ -168,7 +179,6 @@ ISR(PCINT1_vect)
 		bFenceEnd = true;
 		bHoming = false;
 		bProxEnd = true;
-		///Serial.println("End");
 	}
 	else
 	{
