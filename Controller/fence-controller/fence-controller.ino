@@ -49,6 +49,8 @@ void setup()
 	loadEEPROM();
 }
 
+char cBuf[32];
+
 void loop()
 {
 	// Reset when coming out of EStopISR
@@ -79,9 +81,9 @@ void loop()
 						sSerialBuffer[0] = '0';
 						sSerialBuffer[1] = '0';
 
-						fTargetValueTemp = atof(sSerialBuffer.c_str());
+						fTargetValue = atof(sSerialBuffer.c_str());
 
-						if (fTargetValue - fTargetValueTemp < 0)
+						if ((fPositionValue - fTargetValue) < 0)
 						{
 							setDir(JOG_PLUS);
 						}
@@ -90,9 +92,29 @@ void loop()
 							setDir(JOG_MINUS);
 						}
 
-						jog(fabs(JOG_IN(fTargetValueTemp) - JOG_IN(fTargetValue)));
+						Serial.println();
+						Serial.print("   Pos: ");
+						Serial.println(fPositionValue, 3);
+						Serial.print("Target: ");
+						Serial.println(fTargetValue, 3);
+						Serial.print("  Diff: ");
+						Serial.println(roundf(fabs(JOG_IN(fTargetValue) - JOG_IN(fPositionValue))));
+						Serial.println();
 
-						fTargetValue = fTargetValueTemp;
+						jog(roundf(fabs(JOG_IN(fTargetValue) - JOG_IN(fPositionValue))));
+
+						delay(100);
+
+						memset(cBuf, 0, 32);
+
+						cBuf[0] = 'P';
+						cBuf[1] = ':';
+
+						///fPositionValue = fTargetValue;
+						
+						strcat(cBuf, String(fPositionValue, 5).c_str());
+						
+						Serial1.print(cBuf);
 						break;
 					case 'H':
 						if (digitalRead(PROX1_HOME) == HIGH)
@@ -103,23 +125,29 @@ void loop()
 							bJogPlus = false;
 							nHomingTime = 0;
 							nSpeedTempValue = nSpeedValue;
-							nSpeedValue = 1;
+							nSpeedValue = 2;
 							setDir(JOG_MINUS);
 						}
 						break;
 					case 'S':
-						if (++nSpeedValue > 5)
-						{
-							nSpeedValue = 1;
-						}
+						sSerialBuffer[0] = '0';
+						sSerialBuffer[1] = '0';
+
+						nSpeedValue = atoi(sSerialBuffer.c_str());
 						break;
 					case 'X':
-						bJogMinus = true;
-						setDir(JOG_MINUS);
+						if (cSerialBufferOld != 'Y')
+						{
+							bJogMinus = true;
+							setDir(JOG_MINUS);
+						}
 						break;
 					case 'Y':
-						bJogPlus = true;
-						setDir(JOG_PLUS);
+						if (cSerialBufferOld != 'X')
+						{
+							bJogPlus = true;
+							setDir(JOG_PLUS);
+						}
 						break;
 					case 'x':
 						bJogMinus = false;
@@ -128,6 +156,8 @@ void loop()
 						bJogPlus = false;
 						break;
 				}
+
+				cSerialBufferOld = cSerialBuffer;
 			}
 		}
 		
@@ -164,8 +194,8 @@ ISR(PCINT1_vect)
 		bHoming = false;
 		bProxHome = true;
 		nSpeedValue = nSpeedTempValue;
-		fTargetValue = 0;
-		Serial1.println("H");
+		fPositionValue = 0;
+		Serial1.print("H");
 	}
 	else
 	{

@@ -40,12 +40,12 @@
 #define FENCE_DEPTH 48
 
 extern byte CornerTL[], CornerTR[], CornerBL[], CornerBR[], LineH[], LineV[], BlockPartial[], BlockFull[], LetG[];
-extern bool bEditMode, bSetDenominator, bSetFenceDepthValue, bSetSpeedValue, bSetTargetValue, bSetThreadsPerInchValue;
-extern volatile bool bEStop, bHomed, bJogMinus, bJogPlus, bGoTarget;
+extern volatile bool bEditMode, bEStop, bGoTarget, bHomed, bJogMinus, bJogPlus, bSerialParams, bSetDenominator, bSetFenceDepthValue, bSetSpeedValue, bSetTargetValue, bSetThreadsPerInchValue;
 extern uint8_t nBufferIndex, nEditMode, nHoldKey, nKeypadBuffer, nPageMode, nSerialBuffer, nSpeedValue, nWarningIndex;
 extern unsigned long nHoldTime, nTime, nLCDTime;
-extern float fFenceDepth, fTargetValue, fThreadsPerInchValue;
+extern float fPositionValue, fFenceDepth, fTargetValue, fThreadsPerInchValue;
 extern char  cSerialBuffer, cValueBufferNumerator[8], cValueBufferDenominator[8];
+extern String sSerialBuffer;
 
 extern Keypad keypad;
 extern LiquidCrystal_I2C lcd;

@@ -13,28 +13,31 @@
   */
 #include "util.h"
 
-volatile bool bEStop = false;
-volatile bool bFenceHome = false;
-volatile bool bFenceEnd = false;
-volatile bool bHoming = false;
-volatile bool bJogMinus = false;
-volatile bool bJogPlus = false;
-volatile bool bProxHome = false;
-volatile bool bProxEnd = false;
+volatile bool bEStop        = false;
+volatile bool bFenceHome    = false;
+volatile bool bFenceEnd     = false;
+volatile bool bHoming       = false;
+volatile bool bJogMinus     = false;
+volatile bool bJogPlus      = false;
+volatile bool bProxHome     = false;
+volatile bool bProxEnd      = false;
 volatile bool bSerialParams = false;
 
-char cSerialBuffer;
+volatile char cSerialBuffer;
+volatile char cSerialBufferOld;
 
-uint8_t nDirState = LOW;
-uint8_t nSpeedValue = 1;
-uint8_t nSpeedTempValue = 1;
+volatile uint8_t nDirState       = LOW;
+volatile uint8_t nSpeedValue     = 1;
+volatile uint8_t nSpeedTempValue = 1;
 
-float fFenceDepth;
-float fTargetValue = 0.0f;
-float fTargetValueTemp = 0.0f;
-float fThreadsPerInchValue;
+volatile float fPositionValue = 0.0f;
+volatile float fFenceDepth;
+volatile float fTargetValue   = 0.0f;
+volatile float fThreadsPerInchValue;
 
-unsigned long nHomingTime = 0;
+volatile unsigned long nHomingTime = 0;
+volatile unsigned long t0          = 0;
+volatile unsigned long t1          = 0;
 
 String sSerialBuffer;
 
@@ -61,16 +64,25 @@ void jog(uint32_t steps = 1)
 		PINA |= (1 << PINA3); // Set PUL2 high
 		delayMicroseconds((DELAY_US / 2) / nSpeedValue);
 
-		if (steps == 1)
+
+		if (nDirState == JOG_MINUS)
 		{
-			if (nDirState == JOG_MINUS)
-			{
-				fTargetValue -= (float)(1.0f / STEPS_IN(1));
-			}
-			else if (nDirState == JOG_PLUS)
-			{
-				fTargetValue += (float)(1.0f / STEPS_IN(1));
-			}
+			fPositionValue -= (float)(1.0f / STEPS_IN(1));
+		}
+		else if (nDirState == JOG_PLUS)
+		{
+			fPositionValue += (float)(1.0f / STEPS_IN(1));
+		}
+		
+		if ((millis() - t0 ) > 100)
+		{
+			t0 = millis();
+
+			char cBuf[32] = { 'P', ':' };
+
+			strcat(cBuf, String(fPositionValue, 5).c_str());
+
+			Serial1.print(cBuf);
 		}
 	}
 }
