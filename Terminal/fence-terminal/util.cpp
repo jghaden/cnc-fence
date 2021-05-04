@@ -110,6 +110,7 @@ volatile bool bJogPlus                = false;
 volatile bool bSerialParams           = false;
 volatile bool bSetDenominator         = false;
 volatile bool bSetFenceDepthValue     = false;
+volatile bool bSetSummation           = false;
 volatile bool bSetSpeedValue          = false;
 volatile bool bSetTargetValue         = false;
 volatile bool bSetThreadsPerInchValue = false;
@@ -133,8 +134,7 @@ unsigned long nTime     = 0;
 unsigned long nLCDTime  = 0;
 unsigned long nHoldTime = 0;
 
-char cValueBufferNumerator[8]   = { 0 };
-char cValueBufferDenominator[8] = { 0 };
+char cEditValueBuffer[32] = { 0 };
 
 String sSerialBuffer;
 
@@ -310,18 +310,6 @@ void defaultMode()
 {
 	switch (nKeypadBuffer)
 	{
-		case '0': break;
-		case '1': break;
-		case '2': break;
-		case '3': break;
-		case '4': break;
-		case '5': break;
-		case '6': break;
-		case '7': break;
-		case '8': break;
-		case '9': break;
-		case 'A':
-			break;
 		case 'B':
 			if (nPageMode == PAGE_TARGET)
 			{
@@ -384,12 +372,9 @@ void defaultMode()
 				editMode(EDIT_MODE_PRE);
 			}
 			break;
-		case 'D':
-			///nPageMode++;
-			///showMenu();
-			break;
 	}
 }
+
 
 // Handle keypresses while in edit mode differently than default mode
 void editMode(uint8_t nEditMode = EDIT_MODE_CUR)
@@ -401,9 +386,7 @@ void editMode(uint8_t nEditMode = EDIT_MODE_CUR)
 			nBufferIndex = 0;
 			bEditMode = true;
 
-			memset(cValueBufferNumerator, 0, sizeof(cValueBufferNumerator));
-			memset(cValueBufferDenominator, 0, sizeof(cValueBufferDenominator));
-			cValueBufferDenominator[0] = '1';
+			memset(cEditValueBuffer, 0, 32);
 			break;
 		case EDIT_MODE_CUR:
 			if (nBufferIndex < 6)
@@ -412,38 +395,27 @@ void editMode(uint8_t nEditMode = EDIT_MODE_CUR)
 				{
 					lcd.write(nKeypadBuffer);
 
-					if (bSetDenominator)
-					{
-						cValueBufferDenominator[nBufferIndex++] = nKeypadBuffer;
-					}
-					else
-					{
-						cValueBufferNumerator[nBufferIndex++] = nKeypadBuffer;
-					}
+					cEditValueBuffer[nBufferIndex++] = nKeypadBuffer;
 				}
 				else if (nKeypadBuffer == '*')
 				{
-					lcd.write('.');
+					cEditValueBuffer[nBufferIndex++] = '.';
 
-					if (bSetDenominator)
-					{
-						cValueBufferDenominator[nBufferIndex++] = '.';
-					}
-					else
-					{
-						cValueBufferNumerator[nBufferIndex++] = '.';
-					}
+					lcd.write('.');
 				}
-				if (nKeypadBuffer == 'A')
+				if ((nKeypadBuffer == 'A') && !bSetSummation && (nBufferIndex != 0))
 				{
+					cEditValueBuffer[nBufferIndex++] = '+';
+					bSetSummation = true;
+
 					lcd.write('+');
 				}
-				else if (nKeypadBuffer == 'D')
+				else if ((nKeypadBuffer == 'D') && !bSetDenominator && (nBufferIndex != 0))
 				{
-					lcd.write('/');
-
-					nBufferIndex = 0;
+					cEditValueBuffer[nBufferIndex++] = '/';
 					bSetDenominator = true;
+
+					lcd.write('/');
 				}
 			}
 
@@ -452,7 +424,7 @@ void editMode(uint8_t nEditMode = EDIT_MODE_CUR)
 				if (bSetTargetValue)
 				{
 					bSetTargetValue = false;
-					fTargetValue = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
+					fTargetValue = editModeParser();
 
 					if (fTargetValue > fFenceDepth)
 					{
@@ -462,7 +434,7 @@ void editMode(uint8_t nEditMode = EDIT_MODE_CUR)
 				else if (bSetThreadsPerInchValue)
 				{
 					bSetThreadsPerInchValue = false;
-					fThreadsPerInchValue = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
+					fThreadsPerInchValue = editModeParser();
 
 					if (fThreadsPerInchValue > 20)
 					{
@@ -474,11 +446,11 @@ void editMode(uint8_t nEditMode = EDIT_MODE_CUR)
 				else if (bSetFenceDepthValue)
 				{
 					bSetFenceDepthValue = false;
-					fFenceDepth = atof(cValueBufferNumerator) / atof(cValueBufferDenominator);
+					fFenceDepth = editModeParser();
 
-					if (fFenceDepth > 240.0f)
+					if (fFenceDepth > 48.0f)
 					{
-						fFenceDepth = 240.0f;
+						fFenceDepth = 48.0f;
 					}
 
 					///EEPROM.write(EEPROM_FENCE_DEPTH, fFenceDepth);
@@ -490,6 +462,7 @@ void editMode(uint8_t nEditMode = EDIT_MODE_CUR)
 		case EDIT_MODE_POST:
 			bEditMode = false;
 			bSetDenominator = false;
+			bSetSummation = false;
 			showMenu();
 			break;
 		}
@@ -564,11 +537,6 @@ void showMenu()
 	lcd.blink_off();
 	lcd.clear();
 
-	if (!bHomed)
-	{
-		alignCenter(" Needs Homin\7 ", 0);
-	}
-
 	if (nPageMode != PAGE_TARGET)
 	{
 		drawWindow(0, 0, LCD_COLS, LCD_ROWS);
@@ -621,6 +589,42 @@ void showMenu()
 	}
 }
 
+// Prints an alternating loading symbol on the LCD
+void showWarning(uint8_t x, uint8_t y)
+{
+	lcd.setCursor(x, y);
+
+	switch (nWarningIndex)
+	{
+	case 0:
+		lcd.write(' ');
+		break;
+	case 1:
+		lcd.write('!');
+		break;
+	}
+}
+
+// Return index of character in a string
+int getIndex(const char s[], char delimeter)
+{
+	int i = 0;
+
+	while (i < getLength(s))
+	{
+		if (s[i] != delimeter)
+		{
+			i = -1;
+		}
+		else
+		{
+			return i;
+		}
+
+		i++;
+	}
+}
+
 // Return length of string to use for text alignment functions
 uint8_t getLength(const char s[])
 {
@@ -634,18 +638,103 @@ uint8_t getLength(const char s[])
 	return i;
 }
 
-// Prints an alternating loading symbol on the LCD
-void warning(uint8_t x, uint8_t y)
+// Return calculated float for edit mode
+float editModeParser()
 {
-	lcd.setCursor(x, y);
+	bool bAddition      = false;
+	bool bDivision      = false;
+	bool bAdditionEarly = false;
+	bool bDivisionEarly = false;
 
-	switch (nWarningIndex)
+	float fResult    = 0.0f;
+
+	String sBuffer0;
+	String sBuffer1;
+	String sBuffer2;
+
+	///Serial.print("  Buffer: ");
+	///Serial.println(cEditValueBuffer);
+
+	int nAddIndex = String(cEditValueBuffer).indexOf('+');
+	int nDivIndex = String(cEditValueBuffer).indexOf('/');
+
+	if (nAddIndex != -1 && nDivIndex != -1)
 	{
-	case 0:
-		lcd.write(' ');
-		break;
-	case 1:
-		lcd.write('!');
-		break;
+		// AD
+		if (nAddIndex < nDivIndex)
+		{
+			bAddition = true;
+			bAdditionEarly = true;
+			bDivision = true;
+
+			sBuffer0 = String(cEditValueBuffer).substring(0, nAddIndex);
+			sBuffer1 = String(cEditValueBuffer).substring(nAddIndex + 1, nDivIndex);
+			sBuffer2 = String(cEditValueBuffer).substring(nDivIndex + 1, String(cEditValueBuffer).length());
+
+			fResult = (atof(sBuffer1.c_str()) / atof(sBuffer2.c_str())) + atof(sBuffer0.c_str());
+		}
+		// DA
+		else if (nAddIndex > nDivIndex)
+		{
+			bAddition = true;
+			bDivision = true;
+			bDivisionEarly = true;
+
+			sBuffer0 = String(cEditValueBuffer).substring(0, nDivIndex);
+			sBuffer1 = String(cEditValueBuffer).substring(nDivIndex + 1, nAddIndex);
+			sBuffer2 = String(cEditValueBuffer).substring(nAddIndex + 1, String(cEditValueBuffer).length());
+
+			fResult = (atof(sBuffer0.c_str()) / atof(sBuffer1.c_str()) + atof(sBuffer2.c_str()));
+		}
 	}
+	// A
+	else if (nAddIndex >= 0 && nDivIndex == -1)
+	{
+		bAddition = true;
+
+		sBuffer0 = String(cEditValueBuffer).substring(0, nAddIndex);
+		sBuffer1 = String(cEditValueBuffer).substring(nAddIndex, String(cEditValueBuffer).length());
+
+		fResult = atof(sBuffer0.c_str()) + atof(sBuffer1.c_str());
+	}
+	// D
+	else if (nDivIndex >= 0 && nAddIndex == -1)
+	{
+		bDivision = true;
+
+		sBuffer0 = String(cEditValueBuffer).substring(0, nDivIndex);
+		sBuffer1 = String(cEditValueBuffer).substring(nDivIndex + 1, String(cEditValueBuffer).length());
+
+		fResult = atof(sBuffer0.c_str()) / atof(sBuffer1.c_str());
+	}
+	// N
+	else
+	{
+		sBuffer0 = String(cEditValueBuffer);
+
+		fResult = atof(sBuffer0.c_str());
+	}
+
+	///lcd.clear();
+
+	///lcd.setCursor(0, 1);
+	///lcd.print(atof(sBuffer0.c_str()), 3);
+	///lcd.setCursor(0, 2);
+	///lcd.print(atof(sBuffer1.c_str()), 3);
+	///lcd.setCursor(0, 3);
+	///lcd.print(atof(sBuffer2.c_str()), 3);
+
+	///Serial.println();
+	///Serial.println(cEditValueBuffer);
+	///Serial.println(nAddIndex);
+	///Serial.println(nDivIndex);
+	///Serial.println(sBuffer0);
+	///Serial.println(sBuffer1);
+	///Serial.println(sBuffer2);
+	///Serial.println(fResult, 3);
+	///Serial.println();
+
+	///delay(1000);
+
+	return fResult;
 }

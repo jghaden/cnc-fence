@@ -40,11 +40,11 @@
 #define FENCE_DEPTH 48
 
 extern byte CornerTL[], CornerTR[], CornerBL[], CornerBR[], LineH[], LineV[], BlockPartial[], BlockFull[], LetG[];
-extern volatile bool bEditMode, bEStop, bGoTarget, bHomed, bJogMinus, bJogPlus, bSerialParams, bSetDenominator, bSetFenceDepthValue, bSetSpeedValue, bSetTargetValue, bSetThreadsPerInchValue;
+extern volatile bool bEditMode, bEStop, bGoTarget, bHomed, bJogMinus, bJogPlus, bSerialParams, bSetDenominator, bSetFenceDepthValue, bSetSpeedValue, bSetSummation, bSetTargetValue, bSetThreadsPerInchValue;
 extern uint8_t nBufferIndex, nEditMode, nHoldKey, nKeypadBuffer, nPageMode, nSerialBuffer, nSpeedValue, nWarningIndex;
 extern unsigned long nHoldTime, nTime, nLCDTime;
 extern float fPositionValue, fFenceDepth, fTargetValue, fThreadsPerInchValue;
-extern char  cSerialBuffer, cValueBufferNumerator[8], cValueBufferDenominator[8];
+extern char  cSerialBuffer, cEditValueBuffer[32];
 extern String sSerialBuffer;
 
 extern Keypad keypad;
@@ -60,10 +60,13 @@ void customCharacterSetup();
 void defaultMode();
 void drawWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h);
 void editMode(uint8_t nEditMode = EDIT_MODE_CUR);
+
 void keypadHandler();
 void showMenu();
-void warning(uint8_t x, uint8_t y);
+void showWarning(uint8_t x, uint8_t y);
 
+int getIndex(const char s[], char delimeter);
 uint8_t getLength(const char s[]);
+float editModeParser();
 
 #endif

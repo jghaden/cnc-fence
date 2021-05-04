@@ -55,12 +55,15 @@
 
 extern volatile bool bEStop, bFenceHome, bFenceEnd, bHoming, bJogMinus, bJogPlus, bProxHome, bProxEnd, bSerialParams;
 extern volatile char cSerialBuffer, cSerialBufferOld;
+extern char cBuf[32];
 extern volatile uint8_t nDirState, nSpeedValue, nSpeedTempValue;
 extern volatile float fPositionValue, fFenceDepth, fTargetValue, fThreadsPerInchValue;
 extern volatile unsigned long nHomingTime, t0, t1;
 extern String sSerialBuffer;
 
+void commandHandler();
 void EStopISR();
+void homing();
 void jog(uint32_t steps = 1);
 void loadEEPROM();
 void setDir(uint8_t dir);

@@ -51,14 +51,15 @@ void loop()
 
 		if ((millis() - nLCDTime) > 300 && !bHomed)
 		{
-			warning(2, 0);
-			warning(17, 0);
-
+			showWarning(2, 0);
+			alignCenter(" Needs Homin\7 ", 0);
+			showWarning(17, 0);
+		
 			if (nWarningIndex++ > 1)
 			{
 				nWarningIndex = 0;
 			}
-
+		
 			nLCDTime = millis();
 		}
 	}
