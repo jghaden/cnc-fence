@@ -22,23 +22,24 @@ volatile bool bJogPlus      = false;
 volatile bool bProxHome     = false;
 volatile bool bProxEnd      = false;
 volatile bool bSerialParams = false;
+volatile bool bTargetMode   = false;
 
 volatile char cSerialBuffer;
 volatile char cSerialBufferOld;
 char cBuf[32];
 
-volatile uint8_t nDirState       = LOW;
-volatile uint8_t nSpeedValue     = 1;
-volatile uint8_t nSpeedTempValue = 1;
+volatile uint8_t nDirState           = LOW;
+volatile uint8_t nHomingState        = 0;
+volatile uint8_t nSpeedValue         = 1;
+volatile uint8_t nSpeedTempValue     = 1;
 
-volatile float fPositionValue = 0.0f;
+volatile float fPositionValue        = 0.0f;
 volatile float fFenceDepth;
-volatile float fTargetValue   = 0.0f;
+volatile float fTargetValue          = 0.0f;
 volatile float fThreadsPerInchValue;
 
-volatile unsigned long nHomingTime = 0;
-volatile unsigned long t0          = 0;
-volatile unsigned long t1          = 0;
+volatile unsigned long t0            = 0;
+volatile unsigned long t1            = 0;
 
 String sSerialBuffer;
 
@@ -70,20 +71,11 @@ void commandHandler()
 						setDir(JOG_MINUS);
 					}
 
-	#if defined(DEBUG_MODE)
-					Serial.println();
-					Serial.print("   Pos: ");
-					Serial.println(fPositionValue, 3);
-					Serial.print("Target: ");
-					Serial.println(fTargetValue, 3);
-					Serial.print("  Diff: ");
-					Serial.println(roundf(fabs(JOG_IN(fTargetValue) - JOG_IN(fPositionValue))));
-					Serial.println();
-	#endif
+					bTargetMode = true;
 
 					jog(roundf(fabs(JOG_IN(fTargetValue) - JOG_IN(fPositionValue))));
 
-					delay(100);
+					delay(120);
 
 					memset(cBuf, 0, 32);
 
@@ -94,10 +86,17 @@ void commandHandler()
 					Serial1.print(cBuf);
 					break;
 				case 'H':
-					if (digitalRead(PROX1_HOME) == HIGH)
-					{
-						homing();
-					}
+					homing();
+
+					fPositionValue = 0;
+
+					delay(100);
+
+					memset(cBuf, 0, 32);
+
+					cBuf[0] = 'P';
+					cBuf[1] = ':';
+					strcat(cBuf, String(fPositionValue, 5).c_str());
 					break;
 				case 'S':
 					sSerialBuffer[0] = '0';
@@ -139,6 +138,8 @@ void EStopISR()
 	if (!bEStop)
 	{
 		bEStop = true;
+
+		Serial1.print('E');
 	}
 
 	sei(); // Re-enable interrupts
@@ -150,13 +151,62 @@ void homing()
 	bHoming = true;
 	bJogMinus = false;
 	bJogPlus = false;
-	nHomingTime = 0;
+
 	nSpeedTempValue = nSpeedValue;
-	nSpeedValue = 2;
-	
+	nSpeedValue = 5;
+
+	/* Homing sequence START */
 	setDir(JOG_PLUS);
-	jog(JOG_IN(0.0625f));
+	// Move away from home sensor
+	jog(JOG_IN(0.125f));
+
+	// Keep moving away until clear of sensor
+	while (((digitalRead(PROX1_HOME) == LOW) || bProxHome) && ((digitalRead(PROX2_END) == HIGH ) || !bProxEnd))
+	{
+		jog();
+	}
+
+	// Move a bit more
+	jog(JOG_IN(0.125f));
+
 	setDir(JOG_MINUS);
+
+	// Move towards home sensor until detected
+	while (((digitalRead(PROX1_HOME) == HIGH) || !bProxHome))
+	{
+		jog();
+	}
+
+	setDir(JOG_PLUS);
+
+	// Move until clear of home sensor again
+	while (((digitalRead(PROX1_HOME) == LOW) || bProxHome) && ((digitalRead(PROX2_END) == HIGH) || !bProxEnd))
+	{
+		jog();
+	}
+
+	nSpeedValue = 1;
+
+	// Move away from home sensor again
+	jog(JOG_IN(0.0625));
+
+	setDir(JOG_MINUS);
+
+	// Move towards home sensor until detected again
+	while (((digitalRead(PROX1_HOME) == HIGH) || !bProxHome))
+	{
+		jog();
+	}
+
+	bHoming = false;
+	bFenceHome = true;
+	/* Homing sequence END */
+
+	nSpeedValue = nSpeedTempValue;
+
+	fPositionValue = 0;
+
+	Serial1.print("H");
 }
 
 void jog(uint32_t steps = 1)
@@ -170,17 +220,26 @@ void jog(uint32_t steps = 1)
 		PINA |= (1 << PINA3); // Set PUL2 high
 		delayMicroseconds((DELAY_US / 2) / nSpeedValue);
 
-
 		if (nDirState == JOG_MINUS)
 		{
 			fPositionValue -= (float)(1.0f / STEPS_IN(1));
+
+			if (bProxHome)
+			{
+				break;
+			}
 		}
 		else if (nDirState == JOG_PLUS)
 		{
 			fPositionValue += (float)(1.0f / STEPS_IN(1));
+
+			if (bProxEnd)
+			{
+				break;
+			}
 		}
 		
-		if ((millis() - t0 ) > 100)
+		if ((millis() - t0 ) > 100 && !bHoming)
 		{
 			t0 = millis();
 

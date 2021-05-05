@@ -187,6 +187,10 @@ void buttonHandler()
 			{
 				bGoTarget = true;
 
+				updateSpeed();
+
+				delay(120);
+
 				char cBuf[32] = { 'G', ':' };
 
 				strcat(cBuf, String(fTargetValue, 3).c_str());
@@ -275,6 +279,7 @@ void commandHandler()
 		{
 			bHomed = true;
 			nPageMode = PAGE_TARGET;
+			fPositionValue = 0.0f;
 			showMenu();
 		}
 		else if (cSerialBuffer == 'P')

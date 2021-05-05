@@ -53,12 +53,12 @@
 #define JOG_IN(x) (CONF_STEPS * CONF_TPI * x)
 #define STEPS_IN(x) ((CONF_STEPS * CONF_TPI) / x)
 
-extern volatile bool bEStop, bFenceHome, bFenceEnd, bHoming, bJogMinus, bJogPlus, bProxHome, bProxEnd, bSerialParams;
+extern volatile bool bEStop, bFenceHome, bFenceEnd, bHoming, bJogMinus, bJogPlus, bProxHome, bProxEnd, bSerialParams, bTargetMode;
 extern volatile char cSerialBuffer, cSerialBufferOld;
 extern char cBuf[32];
-extern volatile uint8_t nDirState, nSpeedValue, nSpeedTempValue;
+extern volatile uint8_t nDirState, nHomingState, nSpeedValue, nSpeedTempValue;
 extern volatile float fPositionValue, fFenceDepth, fTargetValue, fThreadsPerInchValue;
-extern volatile unsigned long nHomingTime, t0, t1;
+extern volatile unsigned long t0, t1;
 extern String sSerialBuffer;
 
 void commandHandler();

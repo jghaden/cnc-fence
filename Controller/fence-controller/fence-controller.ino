@@ -41,7 +41,6 @@ void setup()
 	PINA &= ~(PINA7);      // Set DIR2 low
 
 	// Initialize serial port (115200-8-N-1)
-	Serial.begin(115200);
 	Serial1.begin(115200);
 	Serial1.setTimeout(50);
 
@@ -52,15 +51,12 @@ void setup()
 void loop()
 {
 	// Reset when coming out of EStopISR
-	if (bEStop)
+	if (bEStop && (digitalRead(ESTOP) == HIGH))
 	{
-		///Serial1.print('E');
+		bEStop = false;
 
-		if (digitalRead(3) == HIGH)
-		{
-			Serial1.print('R');
-			reset();
-		}
+		Serial1.print('R');
+		reset();
 	}
 	else if (!bEStop)
 	{
@@ -82,34 +78,20 @@ void loop()
 				jog();
 			}
 		}
-		// Homing sequence
-		else if (!bFenceHome && bHoming)
-		{
-			jog();
-		}
 	}
 }
 
 ISR(PCINT1_vect)
 {
-	///if((PINJ & ~(1 << PINJ1)) && !bProxHome)
 	if (digitalRead(PROX1_HOME) == LOW)
 	{
-		bFenceHome = true;
-		bHoming = false;
 		bProxHome = true;
-		nSpeedValue = nSpeedTempValue;
-		fPositionValue = 0;
-
-		Serial1.print("H");
-		Serial1.print("P:0.0");
 	}
 	else
 	{
 		bProxHome = false;
 	}
 	
-	///if((PINJ & ~(PINJ0)) && !bProxEnd)
 	if (digitalRead(PROX2_END) == LOW)
 	{
 		bFenceHome = true;
