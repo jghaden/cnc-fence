@@ -173,17 +173,17 @@ void buttonHandler()
 
 		if (bHomed)
 		{
-			if (digitalRead(KEY_JOG_MINUS) == LOW && !bJogMinus)
+			if (digitalRead(KEY_JOG_MINUS) == LOW && !bJogMinus &&!bJogPlus && !bGoTarget)
 			{
 				bJogMinus = true;
 				Serial1.print('X');
 			}
-			else if (digitalRead(KEY_JOG_PLUS) == LOW && !bJogPlus)
+			else if (digitalRead(KEY_JOG_PLUS) == LOW && !bJogPlus && !bJogMinus && !bGoTarget)
 			{
 				bJogPlus = true;
 				Serial1.print('Y');
 			}
-			else if (digitalRead(KEY_GO) == LOW && !bGoTarget)
+			else if (digitalRead(KEY_GO) == LOW && !bGoTarget && !bJogPlus && !bJogMinus)
 			{
 				bGoTarget = true;
 
@@ -356,11 +356,7 @@ void defaultMode()
 					}
 				}
 
-				char cBuf[32] = { 'S', ':' };
-
-				strcat(cBuf, String(nSpeedValue).c_str());
-
-				Serial1.print(cBuf);
+				updateSpeed();
 			}
 			else if (nPageMode == PAGE_CONFIG)
 			{
@@ -583,7 +579,7 @@ void showMenu()
 			alignRight(" Confi\7 ", 3, 2);
 			break;
 		case PAGE_ESTOP:
-			alignCenter("! E-Stop !", 1);
+			alignCenter("! E-STOP !", 1);
 			alignCenter("Will reset", 2);
 			break;
 	}
@@ -603,6 +599,15 @@ void showWarning(uint8_t x, uint8_t y)
 		lcd.write('!');
 		break;
 	}
+}
+
+void updateSpeed()
+{
+	char cBuf[32] = { 'S', ':' };
+
+	strcat(cBuf, String(nSpeedValue).c_str());
+
+	Serial1.print(cBuf);
 }
 
 // Return index of character in a string
@@ -651,9 +656,6 @@ float editModeParser()
 	String sBuffer0;
 	String sBuffer1;
 	String sBuffer2;
-
-	///Serial.print("  Buffer: ");
-	///Serial.println(cEditValueBuffer);
 
 	int nAddIndex = String(cEditValueBuffer).indexOf('+');
 	int nDivIndex = String(cEditValueBuffer).indexOf('/');
@@ -714,27 +716,6 @@ float editModeParser()
 
 		fResult = atof(sBuffer0.c_str());
 	}
-
-	///lcd.clear();
-
-	///lcd.setCursor(0, 1);
-	///lcd.print(atof(sBuffer0.c_str()), 3);
-	///lcd.setCursor(0, 2);
-	///lcd.print(atof(sBuffer1.c_str()), 3);
-	///lcd.setCursor(0, 3);
-	///lcd.print(atof(sBuffer2.c_str()), 3);
-
-	///Serial.println();
-	///Serial.println(cEditValueBuffer);
-	///Serial.println(nAddIndex);
-	///Serial.println(nDivIndex);
-	///Serial.println(sBuffer0);
-	///Serial.println(sBuffer1);
-	///Serial.println(sBuffer2);
-	///Serial.println(fResult, 3);
-	///Serial.println();
-
-	///delay(1000);
 
 	return fResult;
 }

@@ -60,10 +60,10 @@ void customCharacterSetup();
 void defaultMode();
 void drawWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h);
 void editMode(uint8_t nEditMode = EDIT_MODE_CUR);
-
 void keypadHandler();
 void showMenu();
 void showWarning(uint8_t x, uint8_t y);
+void updateSpeed();
 
 int getIndex(const char s[], char delimeter);
 uint8_t getLength(const char s[]);

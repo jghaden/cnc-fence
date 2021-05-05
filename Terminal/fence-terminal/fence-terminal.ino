@@ -43,10 +43,10 @@ void setup()
 
 void loop()
 {
+	commandHandler();
+
 	if (!bEStop)
 	{
-		commandHandler();
-
 		buttonHandler();
 
 		if ((millis() - nLCDTime) > 300 && !bHomed)
