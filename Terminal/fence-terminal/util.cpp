@@ -279,6 +279,10 @@ void commandHandler()
 			nPageMode = PAGE_ESTOP;
 			showMenu();
 		}
+		else if (cSerialBuffer == 'G')
+		{
+			bTargetMode = false;
+		}
 		else if (cSerialBuffer == 'H')
 		{
 			bHome = false;

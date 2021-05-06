@@ -83,6 +83,10 @@ void commandHandler()
 					strcat(cBuf, String(fPositionValue, 5).c_str());
 
 					Serial1.print(cBuf);
+
+					delay(120);
+
+					Serial1.print('G');
 					break;
 				case 'H':
 					homing();
