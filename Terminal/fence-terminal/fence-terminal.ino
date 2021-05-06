@@ -23,7 +23,7 @@ void setup()
 	pinMode(KEY_JOG_PLUS, INPUT);
 	pinMode(KEY_HOME, INPUT);
 
-	///Serial.begin(115200);
+	Serial.begin(115200);
 	Serial1.begin(115200);
 	Serial1.setTimeout(25);
 
@@ -35,7 +35,7 @@ void setup()
 	customCharacterSetup();
 
 	// Initialize keypad
-	keypad.setHoldTime(100);
+	keypad.setHoldTime(2000);
 
 	// Print menu to the LCD
 	showMenu();
@@ -49,7 +49,7 @@ void loop()
 	{
 		buttonHandler();
 
-		if ((millis() - nLCDTime) > 300 && !bHomed)
+		if ((millis() - nLCDTime) > 300 && !bHomed && !bConfigMode)
 		{
 			showWarning(2, 0);
 			alignCenter(" Needs Homin\7 ", 0);
@@ -61,8 +61,20 @@ void loop()
 			}
 		
 			nLCDTime = millis();
-
-			///bJogPlus = false;
 		}
+	}
+	else if(bEStop && ((millis() - nLCDTime) > 300))
+	{
+		showWarning(4, 1);
+		showWarning(5, 1);
+		showWarning(13, 1);
+		showWarning(14, 1);
+
+		if (nWarningIndex++ > 1)
+		{
+			nWarningIndex = 0;
+		}
+
+		nLCDTime = millis();
 	}
 }

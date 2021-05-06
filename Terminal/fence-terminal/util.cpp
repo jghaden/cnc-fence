@@ -101,6 +101,7 @@ byte LetG[] = {
 	0b01110
 };
 
+volatile bool bConfigMode             = false;
 volatile bool bEditMode               = false;
 volatile bool bEStop                  = false;
 volatile bool bGoTarget               = false;
@@ -119,13 +120,14 @@ volatile bool bTargetMode             = false;
 
 char cSerialBuffer;
 
-uint8_t nBufferIndex  = 0;
-uint8_t nHoldKey      = 0;
-uint8_t nKeypadBuffer = 0;
-uint8_t nPageMode     = PAGE_TARGET;
-uint8_t nSerialBuffer = 0;
-uint8_t nSpeedValue   = 1;
-uint8_t nWarningIndex = 0;
+uint8_t nBufferIndex     = 0;
+uint8_t nHoldKey         = 0;
+uint8_t nKeypadBuffer    = 0;
+uint8_t nKeypadBufferOld = 0;
+uint8_t nPageMode        = PAGE_TARGET;
+uint8_t nSerialBuffer    = 0;
+uint8_t nSpeedValue      = 1;
+uint8_t nWarningIndex    = 0;
 
 float fPositionValue       = 0.0f;
 float fFenceDepth          = FENCE_DEPTH;
@@ -221,8 +223,11 @@ void buttonHandler()
 			}
 
 			// Continuously call to handle keypad input
-			keypadHandler();
+			///keypadHandler();
 		}
+
+		// undo
+		keypadHandler();
 		
 		nTime = millis();
 	}
@@ -329,8 +334,19 @@ void defaultMode()
 {
 	switch (nKeypadBuffer)
 	{
+		case 'A':
+			if (nPageMode == PAGE_CONFIG)
+			{
+				clearRow(1);
+				lcd.setCursor(3, 1);
+				lcd.print("TPI: ");
+
+				bSetThreadsPerInchValue = true;
+				editMode(EDIT_MODE_PRE);
+			}
+			break;
 		case 'B':
-			if (nPageMode == PAGE_TARGET)
+			if (nPageMode == PAGE_TARGET && bHomed)
 			{
 				clearRow(2);
 				lcd.setCursor(0, 2);
@@ -341,16 +357,16 @@ void defaultMode()
 			}
 			else if (nPageMode == PAGE_CONFIG)
 			{
-				clearRow(1);
-				lcd.setCursor(3, 1);
-				lcd.print("TPI: ");
+				clearRow(2);
+				lcd.setCursor(1, 2);
+				lcd.print("Depth: ");
 
-				bSetThreadsPerInchValue = true;
+				bSetFenceDepthValue = true;
 				editMode(EDIT_MODE_PRE);
 			}
 			break;
 		case 'C':
-			if (nPageMode == PAGE_TARGET)
+			if (nPageMode == PAGE_TARGET && bHomed)
 			{
 				clearRowPartial(8, 15, 3);
 
@@ -377,23 +393,21 @@ void defaultMode()
 
 				updateSpeed();
 			}
-			else if (nPageMode == PAGE_CONFIG)
-			{
-				clearRow(2);
-				lcd.setCursor(1, 2);
-				lcd.print("Depth: ");
-
-				bSetFenceDepthValue = true;
-				editMode(EDIT_MODE_PRE);
-			}
 			break;
-		case '*':
-			if (bJogPlus)
+		case '#':
+			if (nKeypadBufferOld == '*' && !bConfigMode)
 			{
+				bConfigMode = true;
+
 				nPageMode = PAGE_CONFIG;
 				showMenu();
 			}
 			break;
+	}
+
+	if (nKeypadBuffer)
+	{
+		nKeypadBufferOld = nKeypadBuffer;
 	}
 }
 
@@ -411,7 +425,7 @@ void editMode(uint8_t nEditMode = EDIT_MODE_CUR)
 			memset(cEditValueBuffer, 0, 32);
 			break;
 		case EDIT_MODE_CUR:
-			if (nBufferIndex < 6)
+			if (nBufferIndex < 12)
 			{
 				if ((nKeypadBuffer - 48) >= 0 && (nKeypadBuffer - 48 <= 9))
 				{
@@ -501,7 +515,7 @@ void keypadHandler()
 
 	if (keypad.getState() == PRESSED)
 	{
-		if (bEditMode && !bJogPlus && !bJogMinus && !bGoTarget)
+		if ((bEditMode && !bJogPlus && !bJogMinus && !bGoTarget && bHomed) || (bEditMode && bConfigMode))
 		{
 			editMode();
 		}
@@ -605,8 +619,8 @@ void showMenu()
 			alignRight(" Confi\7 ", 3, 2);
 			break;
 		case PAGE_ESTOP:
-			alignCenter("! E-STOP !", 1);
-			alignCenter("Will reset", 2);
+			alignCenter("! ESTOP !", 1);
+			alignCenter("Reset power", 2);
 			break;
 	}
 }
