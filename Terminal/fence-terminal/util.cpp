@@ -104,6 +104,7 @@ byte LetG[] = {
 volatile bool bEditMode               = false;
 volatile bool bEStop                  = false;
 volatile bool bGoTarget               = false;
+volatile bool bHome                   = false;
 volatile bool bHomed                  = false;
 volatile bool bJogMinus               = false;
 volatile bool bJogPlus                = false;
@@ -114,6 +115,7 @@ volatile bool bSetSummation           = false;
 volatile bool bSetSpeedValue          = false;
 volatile bool bSetTargetValue         = false;
 volatile bool bSetThreadsPerInchValue = false;
+volatile bool bTargetMode             = false;
 
 char cSerialBuffer;
 
@@ -164,28 +166,30 @@ void buttonHandler()
 		//
 		// button hold down
 		//
-		if (digitalRead(KEY_HOME) == LOW)
+		if (digitalRead(KEY_HOME) == LOW && !bHome && !bEditMode)
 		{
 			Serial1.print('H');
+			bHome = true;
 			bHomed = false;
 			showMenu();
 		}
 
 		if (bHomed)
 		{
-			if (digitalRead(KEY_JOG_MINUS) == LOW && !bJogMinus &&!bJogPlus && !bGoTarget)
+			if (digitalRead(KEY_JOG_MINUS) == LOW && !bJogMinus &&!bJogPlus && !bGoTarget && !bEditMode && !bTargetMode)
 			{
 				bJogMinus = true;
 				Serial1.print('X');
 			}
-			else if (digitalRead(KEY_JOG_PLUS) == LOW && !bJogPlus && !bJogMinus && !bGoTarget)
+			else if (digitalRead(KEY_JOG_PLUS) == LOW && !bJogPlus && !bJogMinus && !bGoTarget && !bEditMode && !bTargetMode)
 			{
 				bJogPlus = true;
 				Serial1.print('Y');
 			}
-			else if (digitalRead(KEY_GO) == LOW && !bGoTarget && !bJogPlus && !bJogMinus)
+			else if (digitalRead(KEY_GO) == LOW && !bGoTarget && !bJogPlus && !bJogMinus && !bEditMode)
 			{
 				bGoTarget = true;
+				bTargetMode = true;
 
 				updateSpeed();
 
@@ -277,6 +281,7 @@ void commandHandler()
 		}
 		else if (cSerialBuffer == 'H')
 		{
+			bHome = false;
 			bHomed = true;
 			nPageMode = PAGE_TARGET;
 			fPositionValue = 0.0f;
@@ -293,6 +298,11 @@ void commandHandler()
 			lcd.setCursor(8, 1);
 			lcd.print(fPositionValue, 3);
 			lcd.print('\"');
+
+			if (fPositionValue == fTargetValue)
+			{
+				bTargetMode = false;
+			}
 		}
 	}
 }
@@ -371,6 +381,13 @@ void defaultMode()
 
 				bSetFenceDepthValue = true;
 				editMode(EDIT_MODE_PRE);
+			}
+			break;
+		case '*':
+			if (bJogPlus)
+			{
+				nPageMode = PAGE_CONFIG;
+				showMenu();
 			}
 			break;
 	}
@@ -480,7 +497,7 @@ void keypadHandler()
 
 	if (keypad.getState() == PRESSED)
 	{
-		if (bEditMode)
+		if (bEditMode && !bJogPlus && !bJogMinus && !bGoTarget)
 		{
 			editMode();
 		}

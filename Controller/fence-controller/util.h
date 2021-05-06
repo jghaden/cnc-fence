@@ -56,7 +56,7 @@
 extern volatile bool bEStop, bFenceHome, bFenceEnd, bHoming, bJogMinus, bJogPlus, bProxHome, bProxEnd, bSerialParams, bTargetMode;
 extern volatile char cSerialBuffer, cSerialBufferOld;
 extern char cBuf[32];
-extern volatile uint8_t nDirState, nHomingState, nSpeedValue, nSpeedTempValue;
+extern volatile uint8_t nDirState, nSpeedValue, nSpeedTempValue;
 extern volatile float fPositionValue, fFenceDepth, fTargetValue, fThreadsPerInchValue;
 extern volatile unsigned long t0, t1;
 extern String sSerialBuffer;

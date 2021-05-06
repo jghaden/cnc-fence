@@ -40,7 +40,7 @@
 #define FENCE_DEPTH 48
 
 extern byte CornerTL[], CornerTR[], CornerBL[], CornerBR[], LineH[], LineV[], BlockPartial[], BlockFull[], LetG[];
-extern volatile bool bEditMode, bEStop, bGoTarget, bHomed, bJogMinus, bJogPlus, bSerialParams, bSetDenominator, bSetFenceDepthValue, bSetSpeedValue, bSetSummation, bSetTargetValue, bSetThreadsPerInchValue;
+extern volatile bool bEditMode, bEStop, bGoTarget, bHome, bHomed, bJogMinus, bJogPlus, bSerialParams, bSetDenominator, bSetFenceDepthValue, bSetSpeedValue, bSetSummation, bSetTargetValue, bSetThreadsPerInchValue, bTargetMode;
 extern uint8_t nBufferIndex, nEditMode, nHoldKey, nKeypadBuffer, nPageMode, nSerialBuffer, nSpeedValue, nWarningIndex;
 extern unsigned long nHoldTime, nTime, nLCDTime;
 extern float fPositionValue, fFenceDepth, fTargetValue, fThreadsPerInchValue;

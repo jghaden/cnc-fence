@@ -29,7 +29,6 @@ volatile char cSerialBufferOld;
 char cBuf[32];
 
 volatile uint8_t nDirState           = LOW;
-volatile uint8_t nHomingState        = 0;
 volatile uint8_t nSpeedValue         = 1;
 volatile uint8_t nSpeedTempValue     = 1;
 
@@ -97,6 +96,10 @@ void commandHandler()
 					cBuf[0] = 'P';
 					cBuf[1] = ':';
 					strcat(cBuf, String(fPositionValue, 5).c_str());
+
+					delay(120);
+
+					Serial1.print("H");
 					break;
 				case 'S':
 					sSerialBuffer[0] = '0';
@@ -153,7 +156,7 @@ void homing()
 	bJogPlus = false;
 
 	nSpeedTempValue = nSpeedValue;
-	nSpeedValue = 5;
+	nSpeedValue = 4;
 
 	/* Homing sequence START */
 	setDir(JOG_PLUS);
@@ -205,8 +208,6 @@ void homing()
 	nSpeedValue = nSpeedTempValue;
 
 	fPositionValue = 0;
-
-	Serial1.print("H");
 }
 
 void jog(uint32_t steps = 1)
@@ -241,6 +242,8 @@ void jog(uint32_t steps = 1)
 		
 		if ((millis() - t0 ) > 100 && !bHoming)
 		{
+			commandHandler();
+
 			t0 = millis();
 
 			char cBuf[32] = { 'P', ':' };

@@ -61,6 +61,8 @@ void loop()
 			}
 		
 			nLCDTime = millis();
+
+			///bJogPlus = false;
 		}
 	}
 }
