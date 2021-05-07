@@ -30,12 +30,17 @@ char cBuf[32];
 
 volatile uint8_t nDirState           = LOW;
 volatile uint8_t nSpeedValue         = 1;
+volatile uint8_t nSpeedMultValue     = 1;
 volatile uint8_t nSpeedTempValue     = 1;
 
+volatile uint32_t nStepsValue        = CONF_STEPS;
+
 volatile float fPositionValue        = 0.0f;
-volatile float fFenceDepth;
+volatile float fFenceDepth           = CONF_DEPTH;
 volatile float fTargetValue          = 0.0f;
-volatile float fThreadsPerInchValue;
+volatile float fThreadsPerInchValue  = CONF_TPI;
+
+float fEEPROMBuffer[1];
 
 volatile unsigned long t0            = 0;
 volatile unsigned long t1            = 0;
@@ -55,6 +60,14 @@ void commandHandler()
 		{
 			switch (cSerialBuffer)
 			{
+				case 'D':
+					sSerialBuffer[0] = '0';
+					sSerialBuffer[1] = '0';
+
+					fFenceDepth = atof(sSerialBuffer.c_str());
+
+					EEPROM.write(EEPROM_FENCE_DEPTH, fFenceDepth);
+					break;
 				case 'G':
 					sSerialBuffer[0] = '0';
 					sSerialBuffer[1] = '0';
@@ -72,7 +85,7 @@ void commandHandler()
 
 					bTargetMode = true;
 
-					jog(roundf(fabs(JOG_IN(fTargetValue) - JOG_IN(fPositionValue))));
+					jog(roundf(fabs(jogToIN(fTargetValue) - jogToIN(fPositionValue))));
 
 					delay(120);
 
@@ -105,11 +118,37 @@ void commandHandler()
 
 					Serial1.print("H");
 					break;
+				case 'M':
+					sSerialBuffer[0] = '0';
+					sSerialBuffer[1] = '0';
+
+					nSpeedMultValue = atoi(sSerialBuffer.c_str());
+
+					EEPROM.write(EEPROM_SPEED, nSpeedMultValue);
+					break;
+				case 'N':
+					sSerialBuffer[0] = '0';
+					sSerialBuffer[1] = '0';
+
+					nStepsValue = atoi(sSerialBuffer.c_str());
+
+					///EEPROM.write(EEPROM_STEPS, nStepsValue); // Needs union of 4 bytes in EEPROM for uint32_t
+					break;
 				case 'S':
 					sSerialBuffer[0] = '0';
 					sSerialBuffer[1] = '0';
 
 					nSpeedValue = atoi(sSerialBuffer.c_str());
+					break;
+				case 'T':
+					sSerialBuffer[0] = '0';
+					sSerialBuffer[1] = '0';
+
+					///fThreadsPerInchValue = atof(sSerialBuffer.c_str());
+
+					///eeprom_write_float((void*)fEEPROMBuffer, fThreadsPerInchValue);
+					///eeprom_write_block((const void*)EEPROM_TPI, (void*)fEEPROMBuffer, 4);
+					///EEPROM.write(EEPROM_TPI, fThreadsPerInchValue);
 					break;
 				case 'X':
 					if (cSerialBufferOld != 'Y')
@@ -165,7 +204,7 @@ void homing()
 	/* Homing sequence START */
 	setDir(JOG_PLUS);
 	// Move away from home sensor
-	jog(JOG_IN(0.125f));
+	jog(jogToIN(0.125f));
 
 	// Keep moving away until clear of sensor
 	while (((digitalRead(PROX1_HOME) == LOW) || bProxHome) && ((digitalRead(PROX2_END) == HIGH ) || !bProxEnd))
@@ -174,7 +213,7 @@ void homing()
 	}
 
 	// Move a bit more
-	jog(JOG_IN(0.125f));
+	jog(jogToIN(0.125f));
 
 	setDir(JOG_MINUS);
 
@@ -195,7 +234,7 @@ void homing()
 	nSpeedValue = 1;
 
 	// Move away from home sensor again
-	jog(JOG_IN(0.0625));
+	jog(jogToIN(0.0625));
 
 	setDir(JOG_MINUS);
 
@@ -220,14 +259,14 @@ void jog(uint32_t steps = 1)
 	{
 		PING &= ~(1 << PING0); // Set PUL1 low
 		PINA &= ~(1 << PINA3); // Set PUL2 low
-		delayMicroseconds((DELAY_US / 2) / nSpeedValue);
+		delayMicroseconds((DELAY_US / 2) / (nSpeedValue * nSpeedMultValue));
 		PING |= (1 << PING0); // Set PUL1 high
 		PINA |= (1 << PINA3); // Set PUL2 high
-		delayMicroseconds((DELAY_US / 2) / nSpeedValue);
+		delayMicroseconds((DELAY_US / 2) / (nSpeedValue * nSpeedMultValue));
 
 		if (nDirState == JOG_MINUS)
 		{
-			fPositionValue -= (float)(1.0f / STEPS_IN(1));
+			fPositionValue -= (float)(1.0f / inToSteps());
 
 			if (bProxHome)
 			{
@@ -236,7 +275,7 @@ void jog(uint32_t steps = 1)
 		}
 		else if (nDirState == JOG_PLUS)
 		{
-			fPositionValue += (float)(1.0f / STEPS_IN(1));
+			fPositionValue += (float)(1.0f / inToSteps());
 
 			if (bProxEnd)
 			{
@@ -262,18 +301,39 @@ void jog(uint32_t steps = 1)
 // Load config data from EEPROM (4 KB) to set fence depth and TPI out of reset
 void loadEEPROM()
 {
+	nStepsValue = EEPROM.read(EEPROM_STEPS);
+	nSpeedMultValue = EEPROM.read(EEPROM_SPEED);
 	fFenceDepth = EEPROM.read(EEPROM_FENCE_DEPTH);
-	fThreadsPerInchValue = EEPROM.read(EEPROM_TPI);
+
+	eeprom_read_block((void*)fEEPROMBuffer, (const void*)EEPROM_TPI, 4);
+	fThreadsPerInchValue = fEEPROMBuffer[1];
+
+	if (isnan(nStepsValue))
+	{
+		nStepsValue = CONF_STEPS;
+	}
+
+	if (isnan(nSpeedMultValue))
+	{
+		nSpeedMultValue = CONF_SPEED;
+	}
 
 	if (isnan(fFenceDepth))
 	{
-		fFenceDepth = 48.0f;
+		fFenceDepth = CONF_DEPTH;
 	}
 
-	if (isnan(fThreadsPerInchValue))
+	if (isnan(fThreadsPerInchValue) || fThreadsPerInchValue <= 0)
 	{
-		fThreadsPerInchValue = 20.0f;
+		fThreadsPerInchValue = CONF_TPI;
 	}
+
+	///Serial.print("  TPI: ");
+	///Serial.println(fThreadsPerInchValue, 3);
+	///Serial.print("Depth: ");
+	///Serial.println(fFenceDepth, 3);
+	///Serial.print("Speed: ");
+	///Serial.println(nSpeedMultValue);
 }
 
 // 
@@ -293,4 +353,14 @@ void setDir(uint8_t dir)
 	}
 
 	delayMicroseconds(20);
+}
+
+uint32_t jogToIN(float in)
+{
+	return (uint32_t)(CONF_STEPS * fThreadsPerInchValue * in);
+}
+
+uint32_t inToSteps()
+{
+	return (CONF_STEPS * fThreadsPerInchValue);
 }

@@ -23,9 +23,10 @@
 #include <math.h>
 
 // EEPROM addresses
-#define EEPROM_FENCE_DEPTH 0xC0
+#define EEPROM_FENCE_DEPTH 0xD4
 #define EEPROM_SPEED       0xC1
 #define EEPROM_TPI         0xC4
+#define EEPROM_STEPS       0xC8
 
 // Jog states
 #define JOG_MINUS LOW  // Backwards (CCW)
@@ -47,7 +48,9 @@
 #define DIR2 29 // PA7
 
 #define CONF_STEPS 800
-#define CONF_TPI   20 // TPI on demo machine
+#define CONF_SPEED 1
+#define CONF_TPI   20    // TPI on demo machine
+//#define CONF_TPI   5.08f // TPI for full machine
 #define CONF_DEPTH 48 // inches
 
 #define JOG_IN(x) (CONF_STEPS * CONF_TPI * x)
@@ -56,8 +59,10 @@
 extern volatile bool bEStop, bFenceHome, bFenceEnd, bHoming, bJogMinus, bJogPlus, bProxHome, bProxEnd, bSerialParams, bTargetMode;
 extern volatile char cSerialBuffer, cSerialBufferOld;
 extern char cBuf[32];
-extern volatile uint8_t nDirState, nSpeedValue, nSpeedTempValue;
+extern volatile uint8_t nDirState, nSpeedValue, nSpeedMultValue, nSpeedTempValue;
+extern volatile uint32_t nStepsValue;
 extern volatile float fPositionValue, fFenceDepth, fTargetValue, fThreadsPerInchValue;
+extern float fEEPROMBuffer[1];
 extern volatile unsigned long t0, t1;
 extern String sSerialBuffer;
 
@@ -67,5 +72,8 @@ void homing();
 void jog(uint32_t steps = 1);
 void loadEEPROM();
 void setDir(uint8_t dir);
+
+uint32_t jogToIN(float in);
+uint32_t inToSteps();
 
 #endif

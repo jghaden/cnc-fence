@@ -13,9 +13,10 @@
 #include <Key.h>
 
 // Used by showMenu() to know what page to print to the LCD
-#define PAGE_TARGET 0
-#define PAGE_CONFIG 1
-#define PAGE_ESTOP  2
+#define PAGE_TARGET   0
+#define PAGE_CONFIG_0 1
+#define PAGE_CONFIG_1 2
+#define PAGE_ESTOP    3
 
 // EEPROM addresses
 ///#define EEPROM_FENCE_DEPTH 0xC0
@@ -40,11 +41,12 @@
 #define FENCE_DEPTH 48
 
 extern byte CornerTL[], CornerTR[], CornerBL[], CornerBR[], LineH[], LineV[], BlockPartial[], BlockFull[], LetG[];
-extern volatile bool bConfigMode, bEditMode, bEStop, bGoTarget, bHome, bHomed, bJogMinus, bJogPlus, bSerialParams, bSetDenominator, bSetFenceDepthValue, bSetSpeedValue, bSetSummation, bSetTargetValue, bSetThreadsPerInchValue, bTargetMode;
-extern uint8_t nBufferIndex, nEditMode, nHoldKey, nKeypadBuffer, nKeypadBufferOld, nPageMode, nSerialBuffer, nSpeedValue, nWarningIndex;
+extern volatile bool bConfigMode, bEditMode, bEStop, bGoTarget, bHome, bHomed, bHoming, bJogMinus, bJogPlus, bSerialParams, bSetDenominator, bSetFenceDepthValue, bSetSpeedValue, bSetSpeedMultValue, bSetStepsValue, bSetSummation, bSetTargetValue, bSetThreadsPerInchValue, bTargetMode;
+extern uint8_t nBufferIndex, nEditMode, nHoldKey, nKeypadBuffer, nKeypadBufferOld, nPageMode, nSerialBuffer, nSpeedValue, nSpeedMultValue, nWarningIndex;
+extern int nStepsValue;
 extern unsigned long nHoldTime, nTime, nLCDTime;
 extern float fPositionValue, fFenceDepth, fTargetValue, fThreadsPerInchValue;
-extern char  cSerialBuffer, cEditValueBuffer[32];
+extern char cBuf[32], cSerialBuffer, cEditValueBuffer[32];
 extern String sSerialBuffer;
 
 extern Keypad keypad;

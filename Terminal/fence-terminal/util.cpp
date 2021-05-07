@@ -107,6 +107,7 @@ volatile bool bEStop                  = false;
 volatile bool bGoTarget               = false;
 volatile bool bHome                   = false;
 volatile bool bHomed                  = false;
+volatile bool bHoming                = false;
 volatile bool bJogMinus               = false;
 volatile bool bJogPlus                = false;
 volatile bool bSerialParams           = false;
@@ -114,10 +115,13 @@ volatile bool bSetDenominator         = false;
 volatile bool bSetFenceDepthValue     = false;
 volatile bool bSetSummation           = false;
 volatile bool bSetSpeedValue          = false;
+volatile bool bSetSpeedMultValue      = false;
+volatile bool bSetStepsValue          = false;
 volatile bool bSetTargetValue         = false;
 volatile bool bSetThreadsPerInchValue = false;
 volatile bool bTargetMode             = false;
 
+char cBuf[32];
 char cSerialBuffer;
 
 uint8_t nBufferIndex     = 0;
@@ -127,7 +131,10 @@ uint8_t nKeypadBufferOld = 0;
 uint8_t nPageMode        = PAGE_TARGET;
 uint8_t nSerialBuffer    = 0;
 uint8_t nSpeedValue      = 1;
+uint8_t nSpeedMultValue  = 1;
 uint8_t nWarningIndex    = 0;
+
+int nStepsValue = 800;
 
 float fPositionValue       = 0.0f;
 float fFenceDepth          = FENCE_DEPTH;
@@ -173,6 +180,7 @@ void buttonHandler()
 			Serial1.print('H');
 			bHome = true;
 			bHomed = false;
+			bHoming = true;
 			showMenu();
 		}
 
@@ -221,12 +229,9 @@ void buttonHandler()
 			{
 				bGoTarget = false;
 			}
-
-			// Continuously call to handle keypad input
-			///keypadHandler();
 		}
 
-		// undo
+		// Continuously call to handle keypad input
 		keypadHandler();
 		
 		nTime = millis();
@@ -292,6 +297,7 @@ void commandHandler()
 		{
 			bHome = false;
 			bHomed = true;
+			bHoming = false;
 			nPageMode = PAGE_TARGET;
 			fPositionValue = 0.0f;
 			showMenu();
@@ -334,17 +340,6 @@ void defaultMode()
 {
 	switch (nKeypadBuffer)
 	{
-		case 'A':
-			if (nPageMode == PAGE_CONFIG)
-			{
-				clearRow(1);
-				lcd.setCursor(3, 1);
-				lcd.print("TPI: ");
-
-				bSetThreadsPerInchValue = true;
-				editMode(EDIT_MODE_PRE);
-			}
-			break;
 		case 'B':
 			if (nPageMode == PAGE_TARGET && bHomed)
 			{
@@ -355,7 +350,27 @@ void defaultMode()
 				bSetTargetValue = true;
 				editMode(EDIT_MODE_PRE);
 			}
-			else if (nPageMode == PAGE_CONFIG)
+			else if (nPageMode == PAGE_CONFIG_0)
+			{
+				clearRow(1);
+				lcd.setCursor(3, 1);
+				lcd.print("TPI: ");
+
+				bSetThreadsPerInchValue = true;
+				editMode(EDIT_MODE_PRE);
+			}
+			else if (nPageMode == PAGE_CONFIG_1)
+			{
+				clearRow(1);
+				lcd.setCursor(1, 1);
+				lcd.print("Steps: ");
+
+				bSetStepsValue = true;
+				editMode(EDIT_MODE_PRE);
+			}
+			break;
+		case 'C':
+			if (nPageMode == PAGE_CONFIG_0)
 			{
 				clearRow(2);
 				lcd.setCursor(1, 2);
@@ -364,9 +379,16 @@ void defaultMode()
 				bSetFenceDepthValue = true;
 				editMode(EDIT_MODE_PRE);
 			}
-			break;
-		case 'C':
-			if (nPageMode == PAGE_TARGET && bHomed)
+			else if (nPageMode == PAGE_CONFIG_1)
+			{
+				clearRow(2);
+				lcd.setCursor(1, 2);
+				lcd.print("Speed: ");
+
+				bSetSpeedMultValue = true;
+				editMode(EDIT_MODE_PRE);
+			}
+			else if (nPageMode == PAGE_TARGET && bHomed)
 			{
 				clearRowPartial(8, 15, 3);
 
@@ -394,12 +416,20 @@ void defaultMode()
 				updateSpeed();
 			}
 			break;
+		case 'D':
+			if(bConfigMode)
+			{
+				nPageMode = (nPageMode == PAGE_CONFIG_0) ? PAGE_CONFIG_1 : PAGE_CONFIG_0;
+
+				showMenu();
+			}
+			break;
 		case '#':
-			if (nKeypadBufferOld == '*' && !bConfigMode)
+			if (nKeypadBufferOld == '*' && !bConfigMode && !bHomed && !bHoming)
 			{
 				bConfigMode = true;
 
-				nPageMode = PAGE_CONFIG;
+				nPageMode = PAGE_CONFIG_0;
 				showMenu();
 			}
 			break;
@@ -477,7 +507,13 @@ void editMode(uint8_t nEditMode = EDIT_MODE_CUR)
 						fThreadsPerInchValue = 20;
 					}
 
-					///EEPROM.write(EEPROM_TPI, fThreadsPerInchValue);
+					memset(cBuf, 0, 32);
+
+					cBuf[0] = 'T';
+					cBuf[1] = ':';
+					strcat(cBuf, String(fThreadsPerInchValue, 5).c_str());
+
+					Serial1.print(cBuf);
 				}
 				else if (bSetFenceDepthValue)
 				{
@@ -489,7 +525,49 @@ void editMode(uint8_t nEditMode = EDIT_MODE_CUR)
 						fFenceDepth = 48.0f;
 					}
 
-					///EEPROM.write(EEPROM_FENCE_DEPTH, fFenceDepth);
+					memset(cBuf, 0, 32);
+
+					cBuf[0] = 'D';
+					cBuf[1] = ':';
+					strcat(cBuf, String(fFenceDepth, 5).c_str());
+
+					Serial1.print(cBuf);
+				}
+				else if (bSetStepsValue)
+				{
+					bSetStepsValue = false;
+					nStepsValue = (int)round(editModeParser());
+
+					if (nStepsValue > 51200)
+					{
+						nStepsValue = 51200;
+					}
+
+					memset(cBuf, 0, 32);
+
+					cBuf[0] = 'N';
+					cBuf[1] = ':';
+					strcat(cBuf, String(nStepsValue).c_str());
+
+					Serial1.print(cBuf);
+				}
+				else if (bSetSpeedMultValue)
+				{
+					bSetSpeedMultValue = false;
+					nSpeedMultValue = (int)round(editModeParser());
+
+					if (nSpeedMultValue > 4)
+					{
+						nSpeedMultValue = 4;
+					}
+
+					memset(cBuf, 0, 32);
+
+					cBuf[0] = 'M';
+					cBuf[1] = ':';
+					strcat(cBuf, String(nSpeedMultValue).c_str());
+
+					Serial1.print(cBuf);
 				}
 
 				editMode(EDIT_MODE_POST);
@@ -606,7 +684,7 @@ void showMenu()
 				}
 			}
 			break;
-		case PAGE_CONFIG:
+		case PAGE_CONFIG_0:
 			lcd.setCursor(3, 1);
 			lcd.print("TPI: ");
 			lcd.print(fThreadsPerInchValue, 3);
@@ -616,7 +694,18 @@ void showMenu()
 			lcd.print(fFenceDepth, 3);
 			lcd.print("\"");
 
-			alignRight(" Confi\7 ", 3, 2);
+			alignRight(" Confi\7 1/2", 3, 2);
+			break;
+		case PAGE_CONFIG_1:
+			lcd.setCursor(1, 1);
+			lcd.print("Steps: ");
+			lcd.print(nStepsValue);
+
+			lcd.setCursor(1, 2);
+			lcd.print("Speed: ");
+			lcd.print(nSpeedMultValue);
+
+			alignRight(" Confi\7 2/2", 3, 2);
 			break;
 		case PAGE_ESTOP:
 			alignCenter("! ESTOP !", 1);
