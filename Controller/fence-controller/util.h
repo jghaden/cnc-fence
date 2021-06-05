@@ -50,8 +50,9 @@
 #define CONF_STEPS 800
 #define CONF_SPEED 1
 //#define CONF_TPI   20    // TPI on demo machine
-#define CONF_TPI   5.08f // TPI for full machine
-#define CONF_DEPTH 48 // inches
+#define CONF_TPI    5.08f  // TPI for full machine
+#define CONF_DEPTH  48     // inches
+#define CONF_OFFSET 0.056f // inches
 
 #define JOG_IN(x) (CONF_STEPS * CONF_TPI * x)
 #define STEPS_IN(x) ((CONF_STEPS * CONF_TPI) / x)

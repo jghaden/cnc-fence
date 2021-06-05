@@ -37,8 +37,9 @@
 #define KEY_HOME       7
 #define KEY_GO         6
 
-#define FENCE_TPI   20
-#define FENCE_DEPTH 48
+#define FENCE_TPI    20
+#define FENCE_DEPTH  48
+#define FENCE_OFFSET 0.056f
 
 extern byte CornerTL[], CornerTR[], CornerBL[], CornerBR[], LineH[], LineV[], BlockPartial[], BlockFull[], LetG[];
 extern volatile bool bConfigMode, bEditMode, bEStop, bGoTarget, bHome, bHomed, bHoming, bJogMinus, bJogPlus, bSerialParams, bSetDenominator, bSetFenceDepthValue, bSetSpeedValue, bSetSpeedMultValue, bSetStepsValue, bSetSummation, bSetTargetValue, bSetThreadsPerInchValue, bTargetMode;

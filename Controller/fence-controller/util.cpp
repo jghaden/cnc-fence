@@ -35,9 +35,9 @@ volatile uint8_t nSpeedTempValue     = 1;
 
 volatile uint32_t nStepsValue        = CONF_STEPS;
 
-volatile float fPositionValue        = 0.0f;
+volatile float fPositionValue        = CONF_OFFSET;
 volatile float fFenceDepth           = CONF_DEPTH;
-volatile float fTargetValue          = 0.0f;
+volatile float fTargetValue          = CONF_OFFSET;
 volatile float fThreadsPerInchValue  = CONF_TPI;
 
 float fEEPROMBuffer[1];
@@ -87,14 +87,14 @@ void commandHandler()
 					if ((fPositionValue - fTargetValue) < 0)
 					{
 						setDir(JOG_PLUS);
-						///Serial.println(roundf(fabs(jogToIN(fTargetValue) - jogToIN(fPositionValue))));
 						jog(roundf(fabs(jogToIN(fTargetValue) - jogToIN(fPositionValue))));
+						///jog(roundf(fabs(jogToIN(fTargetValue) - jogToIN(fPositionValue) - jogToIN(CONF_OFFSET))));
 					}
 					else
 					{
 						setDir(JOG_MINUS);
-						///Serial.println(roundf(fabs(jogToIN(fPositionValue) - jogToIN(fTargetValue))));
 						jog(roundf(fabs(jogToIN(fPositionValue) - jogToIN(fTargetValue))));
+						///jog(roundf(fabs(jogToIN(fPositionValue) - jogToIN(fTargetValue) - jogToIN(CONF_OFFSET))));
 					}
 					
 					///Serial.println();
@@ -116,7 +116,7 @@ void commandHandler()
 				case 'H':
 					homing();
 
-					fPositionValue = 0;
+					///fPositionValue = CONF_OFFSET;
 
 					delay(100);
 
@@ -262,7 +262,7 @@ void homing()
 
 	nSpeedValue = nSpeedTempValue;
 
-	fPositionValue = 0;
+	fPositionValue = CONF_OFFSET;
 }
 
 void jog(uint32_t steps = 1)

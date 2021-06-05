@@ -87,6 +87,16 @@ ISR(PCINT1_vect)
 	if (digitalRead(PROX1_HOME) == LOW)
 	{
 		bProxHome = true;
+
+		delay(120);
+
+		memset(cBuf, 0, 32);
+
+		cBuf[0] = 'P';
+		cBuf[1] = ':';
+		strcat(cBuf, String(fPositionValue, 5).c_str());
+
+		Serial1.print(cBuf);
 	}
 	else
 	{

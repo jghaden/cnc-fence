@@ -299,7 +299,7 @@ void commandHandler()
 			bHomed = true;
 			bHoming = false;
 			nPageMode = PAGE_TARGET;
-			fPositionValue = 0.0f;
+			fPositionValue = FENCE_OFFSET;
 			showMenu();
 		}
 		else if (cSerialBuffer == 'P')
