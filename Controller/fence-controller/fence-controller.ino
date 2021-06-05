@@ -41,6 +41,7 @@ void setup()
 	PINA &= ~(PINA7);      // Set DIR2 low
 
 	// Initialize serial port (115200-8-N-1)
+	///Serial.begin(115200);
 	Serial1.begin(115200);
 	Serial1.setTimeout(50);
 

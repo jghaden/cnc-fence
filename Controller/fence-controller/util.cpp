@@ -74,18 +74,30 @@ void commandHandler()
 
 					fTargetValue = atof(sSerialBuffer.c_str());
 
+					///Serial.print("P: ");
+					///Serial.println(fPositionValue, 3);
+					///Serial.print("T: ");
+					///Serial.println(fTargetValue, 3);
+					///Serial.print("D: ");
+					///Serial.println((fPositionValue - fTargetValue), 3);
+					///Serial.print("J: ");
+					
+					bTargetMode = true;
+
 					if ((fPositionValue - fTargetValue) < 0)
 					{
 						setDir(JOG_PLUS);
+						///Serial.println(roundf(fabs(jogToIN(fTargetValue) - jogToIN(fPositionValue))));
+						jog(roundf(fabs(jogToIN(fTargetValue) - jogToIN(fPositionValue))));
 					}
 					else
 					{
 						setDir(JOG_MINUS);
+						///Serial.println(roundf(fabs(jogToIN(fPositionValue) - jogToIN(fTargetValue))));
+						jog(roundf(fabs(jogToIN(fPositionValue) - jogToIN(fTargetValue))));
 					}
-
-					bTargetMode = true;
-
-					jog(roundf(fabs(jogToIN(fTargetValue) - jogToIN(fPositionValue))));
+					
+					///Serial.println();
 
 					delay(120);
 
