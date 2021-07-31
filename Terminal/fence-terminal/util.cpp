@@ -107,13 +107,11 @@ volatile bool bEStop                  = false;
 volatile bool bGoTarget               = false;
 volatile bool bHome                   = false;
 volatile bool bHomed                  = false;
-volatile bool bHoming                = false;
+volatile bool bHoming                 = false;
 volatile bool bJogMinus               = false;
 volatile bool bJogPlus                = false;
 volatile bool bSerialParams           = false;
-volatile bool bSetDenominator         = false;
 volatile bool bSetFenceDepthValue     = false;
-volatile bool bSetSummation           = false;
 volatile bool bSetSpeedValue          = false;
 volatile bool bSetSpeedMultValue      = false;
 volatile bool bSetStepsValue          = false;
@@ -151,6 +149,51 @@ String sSerialBuffer;
 
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 LiquidCrystal_I2C lcd = LiquidCrystal_I2C(0x27, LCD_COLS, LCD_ROWS);
+
+template <typename T>
+class mVector
+{
+private:
+	T data[16];
+public:
+	mVector()
+	{
+		clear();
+	}
+
+	int size()
+	{
+		int i = 0;
+
+		for (; i < 16; i++)
+		{
+			if (data[i] == '_')
+			{
+				break;
+			}
+		}
+
+		return i;
+	}
+
+	void push_back(T el)
+	{
+		data[size()] = el;
+	}
+
+	T &operator[](int index)
+	{
+		return data[index];
+	}
+
+	void clear()
+	{
+		for (size_t i = 0; i < 16; i++)
+		{
+			data[i] = '_';
+		}
+	}
+};
 
 void(*reset)(void) = 0;
 
@@ -309,8 +352,8 @@ void commandHandler()
 
 			fPositionValue = atof(sSerialBuffer.c_str());
 
-			clearRowPartial(8, 16, 1);
-			lcd.setCursor(8, 1);
+			clearRowPartial(3, 16, 1);
+			lcd.setCursor(3, 1);
 			lcd.print(fPositionValue, 3);
 			lcd.print('\"');
 
@@ -345,7 +388,7 @@ void defaultMode()
 			{
 				clearRow(2);
 				lcd.setCursor(0, 2);
-				lcd.print("Tar\7et: ");
+				lcd.print("T: ");
 
 				bSetTargetValue = true;
 				editMode(EDIT_MODE_PRE);
@@ -382,7 +425,7 @@ void defaultMode()
 			else if (nPageMode == PAGE_CONFIG_1)
 			{
 				clearRow(2);
-				lcd.setCursor(1, 2);
+				lcd.setCursor(0, 2);
 				lcd.print("Speed: ");
 
 				bSetSpeedMultValue = true;
@@ -390,11 +433,11 @@ void defaultMode()
 			}
 			else if (nPageMode == PAGE_TARGET && bHomed)
 			{
-				clearRowPartial(8, 15, 3);
+				clearRowPartial(3, 15, 3);
 
-				lcd.setCursor(1, 3);
+				lcd.setCursor(0, 3);
 
-				lcd.print("Speed: ");
+				lcd.print("S: ");
 
 				if (++nSpeedValue > 5)
 				{
@@ -455,7 +498,7 @@ void editMode(uint8_t nEditMode = EDIT_MODE_CUR)
 			memset(cEditValueBuffer, 0, 32);
 			break;
 		case EDIT_MODE_CUR:
-			if (nBufferIndex < 12)
+			if (nBufferIndex < 17)
 			{
 				if ((nKeypadBuffer - 48) >= 0 && (nKeypadBuffer - 48 <= 9))
 				{
@@ -469,17 +512,21 @@ void editMode(uint8_t nEditMode = EDIT_MODE_CUR)
 
 					lcd.write('.');
 				}
-				if ((nKeypadBuffer == 'A') && !bSetSummation && (nBufferIndex != 0))
+				if ((nKeypadBuffer == 'A') && (nBufferIndex != 0))
 				{
 					cEditValueBuffer[nBufferIndex++] = '+';
-					bSetSummation = true;
 
 					lcd.write('+');
 				}
-				else if ((nKeypadBuffer == 'D') && !bSetDenominator && (nBufferIndex != 0))
+				else if ((nKeypadBuffer == 'B') && (nBufferIndex != 0))
+				{
+					cEditValueBuffer[nBufferIndex++] = '-';
+
+					lcd.write('-');
+				}
+				else if ((nKeypadBuffer == 'D') && (nBufferIndex != 0))
 				{
 					cEditValueBuffer[nBufferIndex++] = '/';
-					bSetDenominator = true;
 
 					lcd.write('/');
 				}
@@ -575,8 +622,6 @@ void editMode(uint8_t nEditMode = EDIT_MODE_CUR)
 			break;
 		case EDIT_MODE_POST:
 			bEditMode = false;
-			bSetDenominator = false;
-			bSetSummation = false;
 			showMenu();
 			break;
 		}
@@ -660,17 +705,17 @@ void showMenu()
 	{
 		case PAGE_TARGET:
 			lcd.setCursor(0, 1);
-			lcd.print("   Pos: ");
+			lcd.print("P: ");
 			lcd.print(fPositionValue, 3);
 			lcd.print("\"");
 
 			lcd.setCursor(0, 2);
-			lcd.print("Tar\7et: ");
+			lcd.print("T: ");
 			lcd.print(fTargetValue, 3);
 			lcd.print("\"");
 
-			lcd.setCursor(1, 3);
-			lcd.print("Speed: ");
+			lcd.setCursor(0, 3);
+			lcd.print("S: ");
 			
 			for (size_t i = 0; i < 5; i++)
 			{
@@ -759,6 +804,20 @@ int getIndex(const char s[], char delimeter)
 	}
 }
 
+// Returns the index of the vector storing indices
+int OperandIndexOf(mVector<int> &v, int index)
+{
+	for (int i = 0; i < v.size(); i++)
+	{
+		if (v[i] == index)
+		{
+			return i;
+		}
+	}
+
+	return -1;
+}
+
 // Return length of string to use for text alignment functions
 uint8_t getLength(const char s[])
 {
@@ -775,76 +834,127 @@ uint8_t getLength(const char s[])
 // Return calculated float for edit mode
 float editModeParser()
 {
-	bool bAddition      = false;
-	bool bDivision      = false;
-	bool bAdditionEarly = false;
-	bool bDivisionEarly = false;
+	bool bSolved = false;
+	int nSolveSteps = 0;
+	float fResult = 0.0f;
 
-	float fResult    = 0.0f;
+	String sExpr = String(cEditValueBuffer);
 
-	String sBuffer0;
-	String sBuffer1;
-	String sBuffer2;
-
-	int nAddIndex = String(cEditValueBuffer).indexOf('+');
-	int nDivIndex = String(cEditValueBuffer).indexOf('/');
-
-	if (nAddIndex != -1 && nDivIndex != -1)
+	// Psuedo-recursion using strings and the while loop below
+	while (!bSolved)
 	{
-		// AD
-		if (nAddIndex < nDivIndex)
+		if (nSolveSteps++ > 16)
 		{
-			bAddition = true;
-			bAdditionEarly = true;
-			bDivision = true;
-
-			sBuffer0 = String(cEditValueBuffer).substring(0, nAddIndex);
-			sBuffer1 = String(cEditValueBuffer).substring(nAddIndex + 1, nDivIndex);
-			sBuffer2 = String(cEditValueBuffer).substring(nDivIndex + 1, String(cEditValueBuffer).length());
-
-			fResult = (atof(sBuffer1.c_str()) / atof(sBuffer2.c_str())) + atof(sBuffer0.c_str());
+			fResult = 0.0f;
+			bSolved = true;
 		}
-		// DA
-		else if (nAddIndex > nDivIndex)
+
+		///// Find location and number of operators
+		bool bSplit = false;
+
+		mVector<int> vIndexes;
+		mVector<int> vIndexBoolean;
+		mVector<int> vIndexExponent;
+		mVector<int> vIndexMultiplication;
+		mVector<int> vIndexDivision;
+		mVector<int> vIndexAddition;
+		mVector<int> vIndexSubtraction;
+		mVector<int> vIndexOperands;
+		mVector<float> vOperands;
+
+		vIndexOperands.push_back(0);
+
+		for (size_t i = 0; i < sExpr.length(); i++)
 		{
-			bAddition = true;
-			bDivision = true;
-			bDivisionEarly = true;
+			switch (sExpr[i])
+			{
+				case '/':
+					bSplit = true;
+					vIndexDivision.push_back(i);
+					break;
+				case '+':
+					bSplit = true;
+					vIndexAddition.push_back(i);
+					break;
+				case '-':
+					bSplit = true;
+					vIndexSubtraction.push_back(i);
+					break;
+			}
 
-			sBuffer0 = String(cEditValueBuffer).substring(0, nDivIndex);
-			sBuffer1 = String(cEditValueBuffer).substring(nDivIndex + 1, nAddIndex);
-			sBuffer2 = String(cEditValueBuffer).substring(nAddIndex + 1, String(cEditValueBuffer).length());
+			if (bSplit)
+			{
+				bSplit = false;
 
-			fResult = (atof(sBuffer0.c_str()) / atof(sBuffer1.c_str()) + atof(sBuffer2.c_str()));
+				vIndexes.push_back(i);
+				vIndexOperands.push_back(i + 1);
+			}
 		}
-	}
-	// A
-	else if (nAddIndex >= 0 && nDivIndex == -1)
-	{
-		bAddition = true;
 
-		sBuffer0 = String(cEditValueBuffer).substring(0, nAddIndex);
-		sBuffer1 = String(cEditValueBuffer).substring(nAddIndex, String(cEditValueBuffer).length());
+		///// Extract operands from expression
+		for (int i = 0; i < vIndexOperands.size() - 1; i++)
+		{
+			vOperands.push_back(atof(sExpr.substring(vIndexOperands[i], vIndexes[i]).c_str()));
+		}
 
-		fResult = atof(sBuffer0.c_str()) + atof(sBuffer1.c_str());
-	}
-	// D
-	else if (nDivIndex >= 0 && nAddIndex == -1)
-	{
-		bDivision = true;
+		vOperands.push_back(atof(sExpr.substring(vIndexOperands[vIndexOperands.size() - 1], (sExpr.length())).c_str()));
+		/////
 
-		sBuffer0 = String(cEditValueBuffer).substring(0, nDivIndex);
-		sBuffer1 = String(cEditValueBuffer).substring(nDivIndex + 1, String(cEditValueBuffer).length());
+		if (vIndexes.size() == 0)
+		{
+			fResult = atof(sExpr.c_str());
+			bSolved = true;
+		}
+		else
+		{
+			size_t j = (vIndexOperands.size() - 1);
 
-		fResult = atof(sBuffer0.c_str()) / atof(sBuffer1.c_str());
-	}
-	// N
-	else
-	{
-		sBuffer0 = String(cEditValueBuffer);
+			///// PEMDAS; no P
+			if (vIndexDivision.size() > 0)
+			{
+				for (; vIndexOperands[j] > vIndexDivision[0]; j--);
 
-		fResult = atof(sBuffer0.c_str());
+				if (vOperands[j + 1] == 0.0f)
+				{
+					fResult = 0.0f;
+					bSolved = true;
+				}
+				else
+				{
+					sExpr = sExpr.substring(0, vIndexOperands[j]) + RemoveZeros(String((vOperands[j] / vOperands[j + 1]), 3)) + sExpr.substring(vIndexOperands[j + 1] + (RemoveZeros(String(vOperands[j + 1])).length()), sExpr.length());
+				}
+			}
+			else if (vIndexSubtraction.size() > 0)
+			{
+				for (; vIndexOperands[j] > vIndexSubtraction[0]; j--);
+
+				sExpr = sExpr.substring(0, vIndexOperands[j]) + RemoveZeros(String((vOperands[j] - vOperands[j + 1]), 3)) + sExpr.substring(vIndexOperands[j + 1] + (RemoveZeros(String(vOperands[j + 1])).length()), sExpr.length());
+			}
+			else if (vIndexAddition.size() > 0)
+			{
+				for (; vIndexOperands[j] > vIndexAddition[0]; j--);
+
+				sExpr = sExpr.substring(0, vIndexOperands[j]) + RemoveZeros(String((vOperands[j] + vOperands[j + 1]), 3)) + sExpr.substring(vIndexOperands[j + 1] + (RemoveZeros(String(vOperands[j + 1])).length()), sExpr.length());
+			}
+			/////
+		}
 	}
 
 	return fResult;
+}
+
+// Remove trailing zeros from float-to-string conversion
+String RemoveZeros(String s)
+{
+	for (size_t i = s.length() - 1; i > 0; i--)
+	{
+		if (s[i] == '.')
+		{
+			return s.substring(0, i);
+		}
+		else if (s[i] != '0')
+		{
+			return s.substring(0, i + 1);
+		}
+	}
 }

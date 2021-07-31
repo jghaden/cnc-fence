@@ -39,10 +39,10 @@
 
 #define FENCE_TPI    20
 #define FENCE_DEPTH  48
-#define FENCE_OFFSET 0.056f
+#define FENCE_OFFSET 0.056
 
 extern byte CornerTL[], CornerTR[], CornerBL[], CornerBR[], LineH[], LineV[], BlockPartial[], BlockFull[], LetG[];
-extern volatile bool bConfigMode, bEditMode, bEStop, bGoTarget, bHome, bHomed, bHoming, bJogMinus, bJogPlus, bSerialParams, bSetDenominator, bSetFenceDepthValue, bSetSpeedValue, bSetSpeedMultValue, bSetStepsValue, bSetSummation, bSetTargetValue, bSetThreadsPerInchValue, bTargetMode;
+extern volatile bool bConfigMode, bEditMode, bEStop, bGoTarget, bHome, bHomed, bHoming, bJogMinus, bJogPlus, bSerialParams, bSetFenceDepthValue, bSetSpeedValue, bSetSpeedMultValue, bSetStepsValue, bSetTargetValue, bSetThreadsPerInchValue, bTargetMode;
 extern uint8_t nBufferIndex, nEditMode, nHoldKey, nKeypadBuffer, nKeypadBufferOld, nPageMode, nSerialBuffer, nSpeedValue, nSpeedMultValue, nWarningIndex;
 extern int nStepsValue;
 extern unsigned long nHoldTime, nTime, nLCDTime;
@@ -71,5 +71,7 @@ void updateSpeed();
 int getIndex(const char s[], char delimeter);
 uint8_t getLength(const char s[]);
 float editModeParser();
+
+String RemoveZeros(String s);
 
 #endif
