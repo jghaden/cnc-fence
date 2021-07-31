@@ -49,20 +49,19 @@
 
 #define CONF_STEPS 800
 #define CONF_SPEED 1
-//#define CONF_TPI   20    // TPI on demo machine
-#define CONF_TPI    5.08f  // TPI for full machine
-#define CONF_DEPTH  48     // inches
-#define CONF_OFFSET 0.056f // inches
+#define CONF_TPI    5.08  // TPI for full machine
+#define CONF_DEPTH  48    // inches
+#define CONF_OFFSET 0.056 // inches
 
-#define JOG_IN(x) (CONF_STEPS * CONF_TPI * x)
-#define STEPS_IN(x) ((CONF_STEPS * CONF_TPI) / x)
+#define IN_TO_STEP(x) (CONF_STEPS * CONF_TPI * x)
+#define STEP_TO_IN(x) (x / (CONF_STEPS * CONF_TPI))
 
 extern volatile bool bEStop, bFenceHome, bFenceEnd, bHoming, bJogMinus, bJogPlus, bProxHome, bProxEnd, bSerialParams, bTargetMode;
 extern volatile char cSerialBuffer, cSerialBufferOld;
 extern char cBuf[32];
 extern volatile uint8_t nDirState, nSpeedValue, nSpeedMultValue, nSpeedTempValue;
 extern volatile uint32_t nStepsValue;
-extern volatile float fPositionValue, fFenceDepth, fTargetValue, fThreadsPerInchValue;
+extern volatile float fPositionValue, fPositionValueTemp, fFenceDepth, fTargetValue, fThreadsPerInchValue;
 extern float fEEPROMBuffer[1];
 extern volatile unsigned long t0, t1;
 extern String sSerialBuffer;
@@ -73,8 +72,6 @@ void homing();
 void jog(uint32_t steps = 1);
 void loadEEPROM();
 void setDir(uint8_t dir);
-
-uint32_t jogToIN(float in);
-uint32_t inToSteps();
+void targetMode(float in);
 
 #endif

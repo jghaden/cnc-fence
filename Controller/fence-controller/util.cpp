@@ -36,6 +36,7 @@ volatile uint8_t nSpeedTempValue     = 1;
 volatile uint32_t nStepsValue        = CONF_STEPS;
 
 volatile float fPositionValue        = CONF_OFFSET;
+volatile float fPositionValueTemp	 = 0;
 volatile float fFenceDepth           = CONF_DEPTH;
 volatile float fTargetValue          = CONF_OFFSET;
 volatile float fThreadsPerInchValue  = CONF_TPI;
@@ -59,7 +60,7 @@ void commandHandler()
 		if (!bHoming)
 		{
 			switch (cSerialBuffer)
-			{
+			{		
 				case 'D':
 					sSerialBuffer[0] = '0';
 					sSerialBuffer[1] = '0';
@@ -74,32 +75,7 @@ void commandHandler()
 
 					fTargetValue = atof(sSerialBuffer.c_str());
 
-					///Serial.print("P: ");
-					///Serial.println(fPositionValue, 3);
-					///Serial.print("T: ");
-					///Serial.println(fTargetValue, 3);
-					///Serial.print("D: ");
-					///Serial.println((fPositionValue - fTargetValue), 3);
-					///Serial.print("J: ");
-					
-					bTargetMode = true;
-
-					if ((fPositionValue - fTargetValue) < 0)
-					{
-						setDir(JOG_PLUS);
-						jog(roundf(fabs(jogToIN(fTargetValue) - jogToIN(fPositionValue))));
-						///jog(roundf(fabs(jogToIN(fTargetValue) - jogToIN(fPositionValue) - jogToIN(CONF_OFFSET))));
-					}
-					else
-					{
-						setDir(JOG_MINUS);
-						jog(roundf(fabs(jogToIN(fPositionValue) - jogToIN(fTargetValue))));
-						///jog(roundf(fabs(jogToIN(fPositionValue) - jogToIN(fTargetValue) - jogToIN(CONF_OFFSET))));
-					}
-					
-					///Serial.println();
-
-					delay(120);
+					targetMode(fTargetValue);
 
 					memset(cBuf, 0, 32);
 
@@ -115,8 +91,6 @@ void commandHandler()
 					break;
 				case 'H':
 					homing();
-
-					///fPositionValue = CONF_OFFSET;
 
 					delay(100);
 
@@ -143,8 +117,6 @@ void commandHandler()
 					sSerialBuffer[1] = '0';
 
 					nStepsValue = atoi(sSerialBuffer.c_str());
-
-					///EEPROM.write(EEPROM_STEPS, nStepsValue); // Needs union of 4 bytes in EEPROM for uint32_t
 					break;
 				case 'S':
 					sSerialBuffer[0] = '0';
@@ -155,12 +127,6 @@ void commandHandler()
 				case 'T':
 					sSerialBuffer[0] = '0';
 					sSerialBuffer[1] = '0';
-
-					///fThreadsPerInchValue = atof(sSerialBuffer.c_str());
-
-					///eeprom_write_float((void*)fEEPROMBuffer, fThreadsPerInchValue);
-					///eeprom_write_block((const void*)EEPROM_TPI, (void*)fEEPROMBuffer, 4);
-					///EEPROM.write(EEPROM_TPI, fThreadsPerInchValue);
 					break;
 				case 'X':
 					if (cSerialBufferOld != 'Y')
@@ -175,7 +141,7 @@ void commandHandler()
 						bJogPlus = true;
 						setDir(JOG_PLUS);
 					}
-					break;
+					break;				
 				case 'x':
 					bJogMinus = false;
 					break;
@@ -189,6 +155,7 @@ void commandHandler()
 	}
 }
 
+// Emergency Stop interrupt; stops all motors and terminal box function
 void EStopISR()
 {
 	cli();  // Stop all other interrupts (Default = on)
@@ -203,6 +170,8 @@ void EStopISR()
 	sei(); // Re-enable interrupts
 }
 
+// Homing sequence; goes home fast, moves away, goes home slow, backs off slow,
+// comes back until home prox sensor goes off and sets position to offset
 void homing()
 {
 	bFenceHome = false;
@@ -216,7 +185,7 @@ void homing()
 	/* Homing sequence START */
 	setDir(JOG_PLUS);
 	// Move away from home sensor
-	jog(jogToIN(0.125f));
+	jog(IN_TO_STEP(0.125f));
 
 	// Keep moving away until clear of sensor
 	while (((digitalRead(PROX1_HOME) == LOW) || bProxHome) && ((digitalRead(PROX2_END) == HIGH ) || !bProxEnd))
@@ -225,7 +194,7 @@ void homing()
 	}
 
 	// Move a bit more
-	jog(jogToIN(0.125f));
+	jog(IN_TO_STEP(0.125f));
 
 	setDir(JOG_MINUS);
 
@@ -246,7 +215,7 @@ void homing()
 	nSpeedValue = 1;
 
 	// Move away from home sensor again
-	jog(jogToIN(0.0625));
+	jog(IN_TO_STEP(0.125f));
 
 	setDir(JOG_MINUS);
 
@@ -265,8 +234,11 @@ void homing()
 	fPositionValue = CONF_OFFSET;
 }
 
+// Generates high and low pulses per step to turn motors in a given direction
 void jog(uint32_t steps = 1)
 {
+	fPositionValueTemp = fPositionValue;
+
 	for (uint32_t i = 0; i < steps; i++)
 	{
 		PING &= ~(1 << PING0); // Set PUL1 low
@@ -275,38 +247,16 @@ void jog(uint32_t steps = 1)
 		PING |= (1 << PING0); // Set PUL1 high
 		PINA |= (1 << PINA3); // Set PUL2 high
 		delayMicroseconds((DELAY_US / 2) / (nSpeedValue * nSpeedMultValue));
+	}
 
-		if (nDirState == JOG_MINUS)
-		{
-			fPositionValue -= (float)(1.0f / inToSteps());
-
-			if (bProxHome)
-			{
-				break;
-			}
-		}
-		else if (nDirState == JOG_PLUS)
-		{
-			fPositionValue += (float)(1.0f / inToSteps());
-
-			if (bProxEnd)
-			{
-				break;
-			}
-		}
-		
-		if ((millis() - t0 ) > 100 && !bHoming)
-		{
-			commandHandler();
-
-			t0 = millis();
-
-			char cBuf[32] = { 'P', ':' };
-
-			strcat(cBuf, String(fPositionValue, 5).c_str());
-
-			Serial1.print(cBuf);
-		}
+	// Steps to Inches
+	if (nDirState == JOG_MINUS)
+	{
+		fPositionValue -= STEP_TO_IN(steps);
+	}
+	else if (nDirState == JOG_PLUS)
+	{
+		fPositionValue += STEP_TO_IN(steps);
 	}
 }
 
@@ -339,40 +289,38 @@ void loadEEPROM()
 	{
 		fThreadsPerInchValue = CONF_TPI;
 	}
-
-	///Serial.print("  TPI: ");
-	///Serial.println(fThreadsPerInchValue, 3);
-	///Serial.print("Depth: ");
-	///Serial.println(fFenceDepth, 3);
-	///Serial.print("Speed: ");
-	///Serial.println(nSpeedMultValue);
 }
 
-// 
+// Set direction of motors; low/end, high/home
 void setDir(uint8_t dir)
 {
 	if (dir == JOG_MINUS)
 	{
-		nDirState = JOG_MINUS;
-		PINL ^= (1 << PINL4); // Set DIR1 high
-		PINA ^= (1 << PINA7); // Set DIR2 high
+		nDirState = JOG_MINUS; // Towards home
+		PINL ^= (1 << PINL4);  // Set DIR1 high
+		PINA ^= (1 << PINA7);  // Set DIR2 high
 	}
 	else if (dir == JOG_PLUS)
 	{
-		nDirState = JOG_PLUS;
-		PINL &= ~(PINL4); // Set DIR1 low
-		PINA &= ~(PINA7); // Set DIR2 low
+		nDirState = JOG_PLUS; // Away from home
+		PINL &= ~(PINL4);	  // Set DIR1 low
+		PINA &= ~(PINA7);	  // Set DIR2 low
 	}
 
 	delayMicroseconds(20);
 }
 
-uint32_t jogToIN(float in)
+// Calculates number of steps and direction to go from current position to desired position
+void targetMode(float in)
 {
-	return (uint32_t)(CONF_STEPS * fThreadsPerInchValue * in);
-}
-
-uint32_t inToSteps()
-{
-	return (CONF_STEPS * fThreadsPerInchValue);
+	if ((fPositionValue - in) < 0)
+	{
+		setDir(JOG_PLUS);
+		jog(roundf(fabs(IN_TO_STEP(in) - IN_TO_STEP(fPositionValue))));
+	}
+	else
+	{
+		setDir(JOG_MINUS);
+		jog(roundf(fabs(IN_TO_STEP(fPositionValue) - IN_TO_STEP(in))));
+	}
 }
