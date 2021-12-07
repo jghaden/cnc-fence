@@ -36,18 +36,18 @@ volatile uint8_t nSpeedTempValue     = 1;
 volatile uint32_t nStepsValue        = CONF_STEPS;
 
 volatile float fPositionValue        = CONF_OFFSET;
-volatile float fPositionValueTemp	 = 0;
 volatile float fFenceDepth           = CONF_DEPTH;
 volatile float fTargetValue          = CONF_OFFSET;
 volatile float fThreadsPerInchValue  = CONF_TPI;
 
 float fEEPROMBuffer[1];
 
-volatile unsigned long t0            = 0;
-volatile unsigned long t1            = 0;
+volatile unsigned long nTime         = 0;
 
 String sSerialBuffer;
 
+// Receives letter commands from the terminal (Pro Micro) over UART
+// Executes specific functions and parses paramaters if provided
 void commandHandler()
 {
 	while (Serial1.available() > 0)
@@ -237,8 +237,6 @@ void homing()
 // Generates high and low pulses per step to turn motors in a given direction
 void jog(uint32_t steps = 1)
 {
-	fPositionValueTemp = fPositionValue;
-
 	for (uint32_t i = 0; i < steps; i++)
 	{
 		PING &= ~(1 << PING0); // Set PUL1 low

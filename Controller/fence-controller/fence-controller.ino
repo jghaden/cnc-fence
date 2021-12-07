@@ -14,6 +14,7 @@
 #include <eeprom.h>
 #include "util.h"
 
+// Causes a board reset when invoked
 void(*reset)(void) = 0;
 
 void setup()
@@ -41,7 +42,6 @@ void setup()
 	PINA &= ~(PINA7);      // Set DIR2 low
 
 	// Initialize serial port (115200-8-N-1)
-	///Serial.begin(115200);
 	Serial1.begin(115200);
 	Serial1.setTimeout(50);
 
@@ -82,6 +82,10 @@ void loop()
 	}
 }
 
+// Interrupt for home and end-stop proximity sensor
+// ATmega2560 does not have the ability to dertimine which pin
+// triggered the interrupt but detects a pin change on ports
+// containing PCINT pins
 ISR(PCINT1_vect)
 {
 	if (digitalRead(PROX1_HOME) == LOW)
